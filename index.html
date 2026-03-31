@@ -807,20 +807,44 @@
         }
 
         function loadSavedConfigToEditor(key) {
-            const data = JSON.parse(localStorage.getItem(key));
-            if (data && editor) {
-                editor.setValue(data.xml);
+            const raw = localStorage.getItem(key);
+            let xml;
+            let name = 'Configuration';
+            
+            try {
+                const data = JSON.parse(raw);
+                xml = data.xml;
+                name = data.name || 'Configuration';
+            } catch(e) {
+                xml = raw;
+                name = key.replace('template_', '').replace('config_', '');
+            }
+            
+            if (xml && editor) {
+                editor.setValue(xml);
                 showSection('editor');
-                showToast(`Configuration "${data.name}" chargée`, 'success');
+                showToast(`"${name}" chargée dans l'éditeur`, 'success');
             }
         }
 
         function loadSavedConfigToDeploy(key) {
-            const data = JSON.parse(localStorage.getItem(key));
-            if (data) {
-                document.getElementById('quickXmlInput').value = data.xml;
+            const raw = localStorage.getItem(key);
+            let xml;
+            let name = 'Configuration';
+            
+            try {
+                const data = JSON.parse(raw);
+                xml = data.xml;
+                name = data.name || 'Configuration';
+            } catch(e) {
+                xml = raw;
+                name = key.replace('template_', '').replace('config_', '');
+            }
+            
+            if (xml) {
+                document.getElementById('quickXmlInput').value = xml;
                 showSection('deploy');
-                showToast(`Configuration "${data.name}" chargée pour déploiement`, 'success');
+                showToast(`"${name}" chargée pour déploiement`, 'success');
             }
         }
 
