@@ -911,7 +911,7 @@
             const select = document.getElementById('templateSelect');
             select.innerHTML = '<option value="">-- Choisir un template --</option>';
             
-            const vendors = ['cisco', 'juniper', 'aruba', 'fortinet', 'mikrotik', 'paloalto', 'generic'];
+            const vendors = ['cisco', 'juniper', 'aruba', 'fortinet', 'mikrotik', 'paloalto', 'generic', 'lab'];
             const vendorNames = {
                 cisco: 'Cisco',
                 juniper: 'Juniper',
@@ -919,7 +919,8 @@
                 fortinet: 'Fortinet',
                 mikrotik: 'MikroTik',
                 paloalto: 'Palo Alto',
-                generic: 'Generic'
+                generic: 'Generic',
+                lab: 'Laboratoires'
             };
             
             vendors.forEach(vendor => {
@@ -1418,12 +1419,24 @@
                 </label>
             `).join('');
             
-            // Load saved templates
+            // Load saved configs (config_ format)
             const savedSelect = document.getElementById('savedTemplateSelect');
             savedSelect.innerHTML = '<option value="">-- Choisir une configuration --</option>';
+            
+            // Load from config_ keys
+            Object.keys(localStorage).filter(k => k.startsWith('config_')).forEach(k => {
+                try {
+                    const h = JSON.parse(localStorage.getItem(k));
+                    savedSelect.innerHTML += `<option value="${k}">${h.name || 'Sans nom'} (${new Date(h.date).toLocaleDateString('fr-FR')})</option>`;
+                } catch(e) {}
+            });
+            
+            // Load from history_ keys (deployments)
             Object.keys(localStorage).filter(k => k.startsWith('history_')).forEach(k => {
-                const h = JSON.parse(localStorage.getItem(k));
-                savedSelect.innerHTML += `<option value="${k}">${h.name} (${new Date(h.date).toLocaleDateString('fr-FR')})</option>`;
+                try {
+                    const h = JSON.parse(localStorage.getItem(k));
+                    savedSelect.innerHTML += `<option value="${k}">${h.name || 'Déploiement'} (${new Date(h.date).toLocaleDateString('fr-FR')})</option>`;
+                } catch(e) {}
             });
         }
 
@@ -1442,8 +1455,18 @@
         function loadSavedTemplate() {
             const key = document.getElementById('savedTemplateSelect').value;
             if (key) {
-                const h = JSON.parse(localStorage.getItem(key));
-                document.getElementById('quickXmlInput').value = h.xml;
+                const raw = localStorage.getItem(key);
+                let xml = '';
+                
+                try {
+                    const data = JSON.parse(raw);
+                    xml = data.xml || data;
+                } catch(e) {
+                    xml = raw;
+                }
+                
+                document.getElementById('quickXmlInput').value = xml;
+                showToast('Configuration chargée', 'success');
             }
         }
 
