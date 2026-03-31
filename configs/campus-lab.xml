@@ -1,0 +1,106 @@
+<!-- Campus Network - Multi-Building -->
+<!-- Building A + Building B with redundant uplinks -->
+
+<!-- Building A - Distribution Switch -->
+<config target="Dist-A-01" host="10.10.1.1" os="ios" user="admin" password="campus123">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>STAFF</name></vlan>
+  <vlan id="30"><name>STUDENTS</name></vlan>
+  <vlan id="40"><name>WIFI</name></vlan>
+  <vlan id="50"><name>SECURITY</name></vlan>
+  
+  <interface name="Vlan10">
+    <ip>10.10.1.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink to Campus Core</description>
+    <allowed-vlans>10,20,30,40,50</allowed-vlans>
+  </interface>
+  
+  <interface name="GigabitEthernet0/2" mode="trunk">
+    <description>Backup Uplink</description>
+    <allowed-vlans>10,20,30,40,50</allowed-vlans>
+  </interface>
+  
+  <interface name="GigabitEthernet1/0/1" mode="access">
+    <description>Staff Port</description>
+    <vlan>20</vlan>
+  </interface>
+  
+  <interface name="GigabitEthernet1/0/2" mode="access">
+    <description>Student Port</description>
+    <vlan>30</vlan>
+  </interface>
+</config>
+
+<!-- Building B - Distribution Switch -->
+<config target="Dist-B-01" host="10.10.2.1" os="ios" user="admin" password="campus123">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>STAFF</name></vlan>
+  <vlan id="30"><name>STUDENTS</name></vlan>
+  <vlan id="40"><name>WIFI</name></vlan>
+  <vlan id="50"><name>SECURITY</name></vlan>
+  
+  <interface name="Vlan10">
+    <ip>10.10.2.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink to Campus Core</description>
+    <allowed-vlans>10,20,30,40,50</allowed-vlans>
+  </interface>
+  
+  <interface name="GigabitEthernet0/2" mode="trunk">
+    <description>Backup Uplink</description>
+    <allowed-vlans>10,20,30,40,50</allowed-vlans>
+  </interface>
+</config>
+
+<!-- Campus Core Router -->
+<config target="Campus-Core" host="10.0.0.1" os="ios" user="admin" password="campus123">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>STAFF</name></vlan>
+  <vlan id="30"><name>STUDENTS</name></vlan>
+  <vlan id="40"><name>WIFI</name></vlan>
+  <vlan id="50"><name>SECURITY</name></vlan>
+  
+  <interface name="GigabitEthernet0/0">
+    <description>WAN - ISP Connection</description>
+    <ip>203.0.113.1</ip>
+    <mask>255.255.255.252</mask>
+  </interface>
+  
+  <ospf process-id="1" router-id="10.0.0.1">
+    <area id="0">
+      <network>10.0.0.0</network>
+      <wildcard>0.0.255.255</wildcard>
+    </area>
+  </ospf>
+  
+  <acl name="ACL-WIFI-ISOLATION">
+    <rule direction="in">
+      <action>deny</action>
+      <source>10.40.0.0</source>
+      <wildcard>0.0.255.255</wildcard>
+      <destination>10.40.0.0</destination>
+      <dest-wildcard>0.0.255.255</dest-wildcard>
+    </rule>
+    <rule direction="in">
+      <action>permit</action>
+      <source>any</source>
+      <destination>any</destination>
+    </rule>
+  </acl>
+</config>
+
+<!-- IP Routing Configuration -->
+<config target="Campus-Core" host="10.0.0.1" os="ios" user="admin" password="campus123">
+  <static-route>
+    <network>0.0.0.0</network>
+    <mask>0.0.0.0</mask>
+    <next-hop>203.0.113.2</next-hop>
+  </static-route>
+</config>

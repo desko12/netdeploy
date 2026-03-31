@@ -1,0 +1,139 @@
+<!-- Configuration Lab - Datacenter -->
+<!-- Core Switch + Access Switches with L3 -->
+
+<!-- Core Switch -->
+<config target="Core-SW-01" host="10.0.0.1" os="ios" user="admin" password="dc-admin123">
+  <vlan id="100"><name>SRV_PROD</name></vlan>
+  <vlan id="200"><name>SRV_DEV</name></vlan>
+  <vlan id="999"><name>NATIVE</name></vlan>
+  
+  <interface name="Vlan100">
+    <description>SVI Production</description>
+    <ip>10.100.0.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  
+  <interface name="Vlan200">
+    <description>SVI Development</description>
+    <ip>10.200.0.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink to Router</description>
+    <allowed-vlans>100,200,999</allowed-vlans>
+    <native-vlan>999</native-vlan>
+  </interface>
+  
+  <interface name="Port-channel1">
+    <description>EtherChannel to Access-SW-01</description>
+    <mode>layer3</mode>
+    <ip>10.10.10.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  
+  <bgp as="65100">
+    <router-id>10.0.0.1</router-id>
+    <neighbor ip="10.0.0.2" remote-as="65100">
+      <description>iBGP Peer</description>
+    </neighbor>
+  </bgp>
+</config>
+
+<!-- Core Switch 2 (Redundancy) -->
+<config target="Core-SW-02" host="10.0.0.2" os="ios" user="admin" password="dc-admin123">
+  <vlan id="100"><name>SRV_PROD</name></vlan>
+  <vlan id="200"><name>SRV_DEV</name></vlan>
+  <vlan id="999"><name>NATIVE</name></vlan>
+  
+  <interface name="Vlan100">
+    <description>SVI Production</description>
+    <ip>10.100.0.2</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  
+  <interface name="Vlan200">
+    <description>SVI Development</description>
+    <ip>10.200.0.2</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink to Router</description>
+    <allowed-vlans>100,200,999</allowed-vlans>
+    <native-vlan>999</native-vlan>
+  </interface>
+  
+  <interface name="Port-channel1">
+    <description>EtherChannel to Access-SW-02</description>
+    <mode>layer3</mode>
+    <ip>10.10.20.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  
+  <hsrp>
+    <group>100</group>
+    <priority>110</priority>
+    <ip>10.100.0.254</ip>
+    <preempt/>
+  </hsrp>
+  
+  <bgp as="65100">
+    <router-id>10.0.0.2</router-id>
+    <neighbor ip="10.0.0.1" remote-as="65100">
+      <description>iBGP Peer</description>
+    </neighbor>
+  </bgp>
+</config>
+
+<!-- Access Switch 1 -->
+<config target="Access-SW-01" host="10.10.10.2" os="ios" user="admin" password="dc-admin123">
+  <vlan id="100"><name>SRV_PROD</name></vlan>
+  <vlan id="200"><name>SRV_DEV</name></vlan>
+  <vlan id="999"><name>NATIVE</name></vlan>
+  
+  <interface name="GigabitEthernet0/1" channel-group="1" mode="active">
+    <description>EtherChannel Member 1</description>
+  </interface>
+  <interface name="GigabitEthernet0/2" channel-group="1" mode="active">
+    <description>EtherChannel Member 2</description>
+  </interface>
+  
+  <interface name="GigabitEthernet0/3" mode="access">
+    <description>Server Port - Production</description>
+    <vlan>100</vlan>
+    <spanning-tree portfast/>
+  </interface>
+  
+  <interface name="GigabitEthernet0/4" mode="access">
+    <description>Server Port - Production</description>
+    <vlan>100</vlan>
+    <spanning-tree portfast/>
+  </interface>
+</config>
+
+<!-- Access Switch 2 -->
+<config target="Access-SW-02" host="10.10.20.2" os="ios" user="admin" password="dc-admin123">
+  <vlan id="100"><name>SRV_PROD</name></vlan>
+  <vlan id="200"><name>SRV_DEV</name></vlan>
+  <vlan id="999"><name>NATIVE</name></vlan>
+  
+  <interface name="GigabitEthernet0/1" channel-group="1" mode="active">
+    <description>EtherChannel Member 1</description>
+  </interface>
+  <interface name="GigabitEthernet0/2" channel-group="1" mode="active">
+    <description>EtherChannel Member 2</description>
+  </interface>
+  
+  <interface name="GigabitEthernet0/3" mode="access">
+    <description>Server Port - Development</description>
+    <vlan>200</vlan>
+    <spanning-tree portfast/>
+  </interface>
+  
+  <interface name="GigabitEthernet0/4" mode="access">
+    <description>Server Port - Development</description>
+    <vlan>200</vlan>
+    <spanning-tree portfast/>
+  </interface>
+</config>

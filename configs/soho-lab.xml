@@ -1,0 +1,66 @@
+<!-- Configuration Lab - Small Office -->
+<!-- 1 Router + 2 Switches + 3 VLANs -->
+
+<!-- Router Configuration -->
+<config target="SOHO-Router" host="192.168.1.1" os="ios" user="admin" password="admin123">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>DATA</name></vlan>
+  <vlan id="30"><name>GUEST</name></vlan>
+  
+  <interface name="GigabitEthernet0/0">
+    <description>WAN - ISP</description>
+    <ip>dhcp</ip>
+  </interface>
+  
+  <interface name="GigabitEthernet0/1">
+    <description>LAN - Distribution</description>
+    <ip>192.168.10.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  
+  <ospf process-id="1" router-id="192.168.10.1">
+    <area id="0">
+      <network>192.168.10.0</network>
+      <wildcard>0.0.0.255</wildcard>
+    </area>
+  </ospf>
+</config>
+
+<!-- Access Switch 1 -->
+<config target="Access-SW-01" host="192.168.1.10" os="ios" user="admin" password="admin123">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>DATA</name></vlan>
+  <vlan id="30"><name>GUEST</name></vlan>
+  
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink to Router</description>
+    <allowed-vlans>10,20,30</allowed-vlans>
+  </interface>
+  
+  <interface name="GigabitEthernet0/2" mode="access">
+    <description>User Port</description>
+    <vlan>20</vlan>
+  </interface>
+  
+  <interface name="GigabitEthernet0/3" mode="access">
+    <description>User Port</description>
+    <vlan>20</vlan>
+  </interface>
+</config>
+
+<!-- Access Switch 2 -->
+<config target="Access-SW-02" host="192.168.1.11" os="ios" user="admin" password="admin123">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>DATA</name></vlan>
+  <vlan id="30"><name>GUEST</name></vlan>
+  
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink to Router</description>
+    <allowed-vlans>10,20,30</allowed-vlans>
+  </interface>
+  
+  <interface name="GigabitEthernet0/2" mode="access">
+    <description>Guest WiFi AP</description>
+    <vlan>30</vlan>
+  </interface>
+</config>

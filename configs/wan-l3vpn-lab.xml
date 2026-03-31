@@ -1,0 +1,89 @@
+<!-- WAN L3VPN - Multi-Site -->
+
+<!-- Site Paris - PE Router -->
+<config target="PE-Paris" host="10.0.1.1" os="ios" user="admin" password="wan-vpn123">
+  <interface name="GigabitEthernet0/0">
+    <description>WAN -连接到SP</description>
+    <ip>10.0.1.1</ip>
+    <mask>255.255.255.252</mask>
+  </interface>
+  
+  <interface name="Loopback0">
+    <description>Router ID</description>
+    <ip>1.1.1.1</ip>
+    <mask>255.255.255.255</mask>
+  </interface>
+  
+  <bgp as="65101">
+    <router-id>1.1.1.1</router-id>
+    <neighbor ip="10.0.1.2" remote-as="65000">
+      <description>ISP Route Reflector</description>
+    </neighbor>
+  </bgp>
+</config>
+
+<!-- Site Lyon - PE Router -->
+<config target="PE-Lyon" host="10.0.2.1" os="ios" user="admin" password="wan-vpn123">
+  <interface name="GigabitEthernet0/0">
+    <description>WAN - Connection to SP</description>
+    <ip>10.0.2.1</ip>
+    <mask>255.255.255.252</mask>
+  </interface>
+  
+  <interface name="Loopback0">
+    <description>Router ID</description>
+    <ip>2.2.2.2</ip>
+    <mask>255.255.255.255</mask>
+  </interface>
+  
+  <bgp as="65102">
+    <router-id>2.2.2.2</router-id>
+    <neighbor ip="10.0.2.2" remote-as="65000">
+      <description>ISP Route Reflector</description>
+    </neighbor>
+  </bgp>
+</config>
+
+<!-- Site Marseille - PE Router -->
+<config target="PE-Marseille" host="10.0.3.1" os="ios" user="admin" password="wan-vpn123">
+  <interface name="GigabitEthernet0/0">
+    <description>WAN - Connection to SP</description>
+    <ip>10.0.3.1</ip>
+    <mask>255.255.255.252</mask>
+  </interface>
+  
+  <interface name="Loopback0">
+    <description>Router ID</description>
+    <ip>3.3.3.3</ip>
+    <mask>255.255.255.255</mask>
+  </interface>
+  
+  <bgp as="65103">
+    <router-id>3.3.3.3</router-id>
+    <neighbor ip="10.0.3.2" remote-as="65000">
+      <description>ISP Route Reflector</description>
+    </neighbor>
+  </bgp>
+</config>
+
+<!-- CE Paris - Customer Edge -->
+<config target="CE-Paris" host="192.168.100.1" os="ios" user="admin" password="wan-vpn123">
+  <interface name="GigabitEthernet0/0">
+    <description>LAN Interface</description>
+    <ip>192.168.100.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  
+  <interface name="GigabitEthernet0/1">
+    <description>WAN - Connection to PE</description>
+    <ip>192.168.1.1</ip>
+    <mask>255.255.255.252</mask>
+  </interface>
+  
+  <bgp as="65201">
+    <router-id>192.168.100.1</router-id>
+    <neighbor ip="192.168.1.2" remote-as="65101">
+      <description>PE Paris</description>
+    </neighbor>
+  </bgp>
+</config>
