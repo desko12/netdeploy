@@ -490,11 +490,17 @@
             <!-- Saved Configurations Section -->
             <section id="section-configs" class="section hidden">
                 <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-white">Configurations Sauvegardées</h2>
-                    <button onclick="showSection('editor'); showToast('Créez une configuration dans l\'éditeur XML', 'info')" class="deploy-gradient px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-opacity">
-                        <i data-lucide="plus" class="w-4 h-4"></i>
-                        Nouvelle Configuration
-                    </button>
+                    <h2 class="text-2xl font-bold text-white">Mes Configurations</h2>
+                    <div class="flex items-center gap-3">
+                        <button onclick="renderSavedConfigs()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            Actualiser
+                        </button>
+                        <button onclick="showSection('editor'); showToast('Créez une configuration dans l\'éditeur XML et cliquez Sauvegarder', 'info')" class="deploy-gradient px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-opacity">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            Nouvelle Configuration
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Saved Configs Grid -->
@@ -731,13 +737,32 @@
 
         function renderSavedConfigs() {
             const grid = document.getElementById('savedConfigsGrid');
-            const savedConfigs = Object.keys(localStorage)
-                .filter(k => k.startsWith('history_'))
-                .map(k => {
-                    const data = JSON.parse(localStorage.getItem(k));
-                    return { key: k, ...data };
-                })
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
+            const savedConfigs = [];
+            
+            // Load new config_ format
+            Object.keys(localStorage)
+                .filter(k => k.startsWith('config_'))
+                .forEach(k => {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(k));
+                        savedConfigs.push({ key: k, ...data });
+                    } catch(e) {}
+                });
+            
+            // Load legacy template_ format
+            Object.keys(localStorage)
+                .filter(k => k.startsWith('template_'))
+                .forEach(k => {
+                    const name = k.replace('template_', '');
+                    savedConfigs.push({
+                        key: k,
+                        name: name,
+                        xml: localStorage.getItem(k),
+                        date: new Date().toISOString()
+                    });
+                });
+            
+            savedConfigs.sort((a, b) => new Date(b.date) - new Date(a.date));
             
             if (savedConfigs.length === 0) {
                 grid.innerHTML = `
@@ -1061,10 +1086,19 @@
         }
 
         function saveTemplate() {
-            const name = prompt('Nom du template:');
+            const name = prompt('Nom de la configuration:');
             if (name) {
-                localStorage.setItem(`template_${name}`, editor.getValue());
-                showToast(`Template "${name}" sauvegardé`, 'success');
+                const xml = editor.getValue();
+                const config = {
+                    name: name,
+                    xml: xml,
+                    date: new Date().toISOString(),
+                    targets: []
+                };
+                const key = `config_${Date.now()}`;
+                localStorage.setItem(key, JSON.stringify(config));
+                showToast(`Configuration "${name}" sauvegardée`, 'success');
+                renderSavedConfigs();
             }
         }
 
