@@ -128,6 +128,10 @@
                     <i data-lucide="layout-template" class="w-5 h-5 text-slate-400"></i>
                     <span class="text-slate-200 font-medium">Templates</span>
                 </button>
+                <button onclick="showSection('configs')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all border-l-4 border-transparent hover:bg-slate-700/50" data-section="configs">
+                    <i data-lucide="folder-check" class="w-5 h-5 text-slate-400"></i>
+                    <span class="text-slate-200 font-medium">Mes Configs</span>
+                </button>
             </div>
             <div class="mt-auto p-4 border-t border-slate-700">
                 <div class="text-xs text-slate-500 text-center">NetDeploy v2.1</div>
@@ -469,7 +473,6 @@
                 <!-- Vendor Filter -->
                 <div class="flex flex-wrap gap-2 mb-6">
                     <button onclick="filterTemplatesByVendor('all')" class="template-filter-btn active px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/20 text-blue-400 border border-blue-500/50 transition-all" data-vendor="all">Tous</button>
-                    <button onclick="filterTemplatesByVendor('lab')" class="template-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all" data-vendor="lab">Labs</button>
                     <button onclick="filterTemplatesByVendor('cisco')" class="template-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all" data-vendor="cisco">Cisco</button>
                     <button onclick="filterTemplatesByVendor('juniper')" class="template-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all" data-vendor="juniper">Juniper</button>
                     <button onclick="filterTemplatesByVendor('aruba')" class="template-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all" data-vendor="aruba">Aruba</button>
@@ -481,6 +484,22 @@
                 <!-- Templates Grid -->
                 <div id="templatesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Templates will be rendered here -->
+                </div>
+            </section>
+
+            <!-- Saved Configurations Section -->
+            <section id="section-configs" class="section hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Configurations Sauvegardées</h2>
+                    <button onclick="showSection('editor'); showToast('Créez une configuration dans l\'éditeur XML', 'info')" class="deploy-gradient px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-opacity">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        Nouvelle Configuration
+                    </button>
+                </div>
+
+                <!-- Saved Configs Grid -->
+                <div id="savedConfigsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Saved configs will be rendered here -->
                 </div>
             </section>
         </main>
@@ -710,6 +729,84 @@
             lucide.createIcons();
         }
 
+        function renderSavedConfigs() {
+            const grid = document.getElementById('savedConfigsGrid');
+            const savedConfigs = Object.keys(localStorage)
+                .filter(k => k.startsWith('history_'))
+                .map(k => {
+                    const data = JSON.parse(localStorage.getItem(k));
+                    return { key: k, ...data };
+                })
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            if (savedConfigs.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center text-slate-500 py-12">
+                        <i data-lucide="folder-x" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+                        <p class="text-lg">Aucune configuration sauvegardée</p>
+                        <p class="text-sm mt-2">Créez une configuration dans l'éditeur XML et sauvegardez-la</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+            
+            grid.innerHTML = savedConfigs.map(cfg => `
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700 p-5 card-hover transition-all">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="file-code-2" class="w-5 h-5 text-blue-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-white">${cfg.name || 'Sans nom'}</h4>
+                                <span class="text-xs text-slate-400">${new Date(cfg.date).toLocaleDateString('fr-FR')}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-4">${cfg.targets ? cfg.targets.join(', ') : 'Aucun équipement'}</p>
+                    <div class="flex items-center gap-2">
+                        <button onclick="loadSavedConfigToEditor('${cfg.key}')" class="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            Modifier
+                        </button>
+                        <button onclick="loadSavedConfigToDeploy('${cfg.key}')" class="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="rocket" class="w-4 h-4"></i>
+                            Déployer
+                        </button>
+                        <button onclick="deleteSavedConfig('${cfg.key}')" class="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>`).join('');
+            lucide.createIcons();
+        }
+
+        function loadSavedConfigToEditor(key) {
+            const data = JSON.parse(localStorage.getItem(key));
+            if (data && editor) {
+                editor.setValue(data.xml);
+                showSection('editor');
+                showToast(`Configuration "${data.name}" chargée`, 'success');
+            }
+        }
+
+        function loadSavedConfigToDeploy(key) {
+            const data = JSON.parse(localStorage.getItem(key));
+            if (data) {
+                document.getElementById('quickXmlInput').value = data.xml;
+                showSection('deploy');
+                showToast(`Configuration "${data.name}" chargée pour déploiement`, 'success');
+            }
+        }
+
+        function deleteSavedConfig(key) {
+            if (confirm('Supprimer cette configuration ?')) {
+                localStorage.removeItem(key);
+                renderSavedConfigs();
+                showToast('Configuration supprimée', 'success');
+            }
+        }
+
         function useTemplate(templateId) {
             const template = getTemplateById(templateId);
             if (template && editor) {
@@ -796,6 +893,9 @@
             
             if (section === 'deploy') {
                 refreshEquipmentForDeploy();
+            }
+            if (section === 'configs') {
+                renderSavedConfigs();
             }
         }
 
@@ -1286,6 +1386,43 @@
             document.getElementById('confirmModal').classList.add('hidden');
         }
 
+        function injectEquipmentData(xmlContent, equipmentData) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xmlContent, 'text/xml');
+            
+            const configs = doc.querySelectorAll('config');
+            if (configs.length === 0) {
+                const root = doc.documentElement;
+                const config = doc.createElement('config');
+                config.setAttribute('target', equipmentData.name);
+                config.setAttribute('host', equipmentData.ip);
+                config.setAttribute('os', equipmentData.os || 'ios');
+                config.setAttribute('user', equipmentData.username || 'admin');
+                config.setAttribute('password', equipmentData.password || '');
+                Array.from(root.childNodes).forEach(child => {
+                    if (child.nodeType === 1) {
+                        config.appendChild(child.cloneNode(true));
+                    }
+                });
+                doc.documentElement.innerHTML = '';
+                doc.documentElement.appendChild(config);
+            } else {
+                configs.forEach(config => {
+                    const hasHost = config.getAttribute('host');
+                    if (!hasHost || hasHost === 'EQUIP_IP') {
+                        config.setAttribute('target', equipmentData.name);
+                        config.setAttribute('host', equipmentData.ip);
+                        config.setAttribute('os', equipmentData.os || 'ios');
+                        config.setAttribute('user', equipmentData.username || 'admin');
+                        config.setAttribute('password', equipmentData.password || '');
+                    }
+                });
+            }
+            
+            const serializer = new XMLSerializer();
+            return '<?xml version="1.0" encoding="UTF-8"?>\n' + serializer.serializeToString(doc);
+        }
+
         async function confirmDeployment() {
             closeConfirmModal();
             
@@ -1314,7 +1451,6 @@
                 document.getElementById('deployProgressBar').style.width = `${progress}%`;
                 document.getElementById('deployProgressMessage').textContent = `Connexion à ${target.name}...`;
                 
-                // Add result card
                 const resultCard = document.createElement('div');
                 resultCard.className = 'bg-slate-800/50 rounded-xl border border-slate-700 p-4';
                 resultCard.id = `result-${i}`;
@@ -1331,19 +1467,40 @@
                         </div>
                         <span class="text-blue-400 text-sm" id="result-status-${i}">En cours...</span>
                     </div>
+                    <div class="mt-3 text-xs text-slate-500" id="result-detail-${i}"></div>
                 `;
                 resultsContainer.appendChild(resultCard);
                 lucide.createIcons();
                 
-                // Simulate deployment
-                await new Promise(r => setTimeout(r, 1500));
+                let isSuccess = false;
+                let errorMsg = '';
                 
-                // Determine success
-                const isSuccess = target.ip.startsWith('192.') || target.ip.startsWith('10.') || Math.random() > 0.2;
-                deployment.results.push({ target: target.name, status: isSuccess ? 'success' : 'failed' });
+                try {
+                    const personalizedXml = injectEquipmentData(xmlContent, target);
+                    document.getElementById('deployProgressMessage').textContent = `Déploiement vers ${target.name}...`;
+                    
+                    const response = await fetch('/api/deploy', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ config: personalizedXml })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        isSuccess = true;
+                    } else {
+                        errorMsg = result.error || 'Erreur inconnue';
+                    }
+                } catch (e) {
+                    errorMsg = e.message || 'Connexion impossible';
+                }
+                
+                deployment.results.push({ target: target.name, status: isSuccess ? 'success' : 'failed', error: errorMsg });
                 
                 const iconEl = document.getElementById(`result-icon-${i}`);
                 const statusEl = document.getElementById(`result-status-${i}`);
+                const detailEl = document.getElementById(`result-detail-${i}`);
                 
                 if (isSuccess) {
                     iconEl.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>';
@@ -1355,6 +1512,7 @@
                     iconEl.className = 'w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center';
                     statusEl.innerHTML = '<span class="text-red-400">Échec</span>';
                     resultCard.classList.add('border-red-500/50');
+                    if (detailEl) detailEl.textContent = errorMsg;
                 }
                 lucide.createIcons();
             }
