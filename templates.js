@@ -519,7 +519,8 @@ const templatesDB = [
         category: 'vlan',
         description: 'Déployer un même VLAN sur plusieurs équipements',
         icon: 'copy',
-        xml: `<config target="switch-01" host="192.168.1.10" os="ios" user="admin" password="password">
+        xml: `<configs>
+<config target="switch-01" host="192.168.1.10" os="ios" user="admin" password="password">
   <vlan id="100">
     <name>PROD_VLAN</name>
   </vlan>
@@ -528,7 +529,8 @@ const templatesDB = [
   <vlan id="100">
     <name>PROD_VLAN</name>
   </vlan>
-</config>`
+</config>
+</configs>`
     },
     {
         id: 'dhcp_relay',
@@ -571,7 +573,8 @@ const templatesDB = [
         category: 'lab',
         description: '1 routeur + 2 switches, 3 VLANs. Idéal pour débuter.',
         icon: 'home',
-        xml: `<config target="SOHO-Router" host="192.168.1.1" os="ios" user="admin" password="admin123">
+        xml: `<configs>
+<config target="SOHO-Router" host="192.168.1.1" os="ios" user="admin" password="admin123">
   <vlan id="10"><name>MGMT</name></vlan>
   <vlan id="20"><name>DATA</name></vlan>
   <vlan id="30"><name>GUEST</name></vlan>
@@ -599,7 +602,8 @@ const templatesDB = [
     <description>Uplink to Router</description>
     <allowed-vlans>10,20,30</allowed-vlans>
   </interface>
-</config>`
+</config>
+</configs>`
     },
     {
         id: 'lab_datacenter',
@@ -608,7 +612,8 @@ const templatesDB = [
         category: 'lab',
         description: 'Core switches avec EtherChannel et HSRP. Redondance complète.',
         icon: 'database',
-        xml: `<config target="Core-SW-01" host="10.0.0.1" os="ios" user="admin" password="dc-admin">
+        xml: `<configs>
+<config target="Core-SW-01" host="10.0.0.1" os="ios" user="admin" password="dc-admin">
   <vlan id="100"><name>SRV_PROD</name></vlan>
   <vlan id="200"><name>SRV_DEV</name></vlan>
   <vlan id="999"><name>NATIVE</name></vlan>
@@ -674,9 +679,10 @@ const templatesDB = [
   <interface name="GigabitEthernet0/3" mode="access">
     <description>Server Production</description>
     <vlan>100</vlan>
-    <spanning-tree portfast/>
+    <spanning-tree portfast=""/>
   </interface>
-</config>`
+</config>
+</configs>`
     },
     {
         id: 'lab_campus',
@@ -685,7 +691,8 @@ const templatesDB = [
         category: 'lab',
         description: 'Campus multi-bâtiment avec distribution redondante.',
         icon: 'building',
-        xml: `<config target="Campus-Core" host="10.0.0.1" os="ios" user="admin" password="campus">
+        xml: `<configs>
+<config target="Campus-Core" host="10.0.0.1" os="ios" user="admin" password="campus">
   <vlan id="10"><name>MGMT</name></vlan>
   <vlan id="20"><name>STAFF</name></vlan>
   <vlan id="30"><name>STUDENTS</name></vlan>
@@ -736,7 +743,8 @@ const templatesDB = [
     <description>Uplink Core</description>
     <allowed-vlans>10,20,30,40,50</allowed-vlans>
   </interface>
-</config>`
+</config>
+</configs>`
     },
     {
         id: 'lab_wan_l3vpn',
@@ -745,7 +753,8 @@ const templatesDB = [
         category: 'lab',
         description: 'Multi-sites avec BGP. Paris, Lyon, Marseille.',
         icon: 'globe',
-        xml: `<config target="PE-Paris" host="10.0.1.1" os="ios" user="admin" password="wan123">
+        xml: `<configs>
+<config target="PE-Paris" host="10.0.1.1" os="ios" user="admin" password="wan123">
   <interface name="GigabitEthernet0/0">
     <description>WAN</description>
     <ip>10.0.1.1</ip>
@@ -813,7 +822,8 @@ const templatesDB = [
       <description>PE Paris</description>
     </neighbor>
   </bgp>
-</config>`
+</config>
+</configs>`
     },
     {
         id: 'lab_infrastructure',
@@ -822,7 +832,8 @@ const templatesDB = [
         category: 'lab',
         description: 'Infrastructure de base multi-VLAN avec routing.',
         icon: 'server',
-        xml: `<config target="Core-Router" host="192.168.1.1" os="ios" user="admin" password="admin">
+        xml: `<configs>
+<config target="Core-Router" host="192.168.1.1" os="ios" user="admin" password="admin">
   <vlan id="10"><name>MGMT</name></vlan>
   <vlan id="20"><name>DATA</name></vlan>
   <vlan id="30"><name>VOICE</name></vlan>
@@ -859,7 +870,8 @@ const templatesDB = [
     <description>Uplink to Core</description>
     <allowed-vlans>10,20,30</allowed-vlans>
   </interface>
-</config>`
+</config>
+</configs>`
     },
 
     // ==================== CISCO IOS-XE COMPREHENSIVE ====================
@@ -1142,7 +1154,7 @@ Utilisateur: \\u
         category: 'interface',
         description: 'Configuration interface OpenConfig via NETCONF NX-OS',
         icon: 'network',
-        xml: `<?xml version="1.0" encoding="UTF-8"?>
+        xml: `<configs>
 <config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
   <interfaces xmlns="http://openconfig.net/yang/interfaces">
     <interface>
@@ -1162,7 +1174,8 @@ Utilisateur: \\u
       </config>
     </interface>
   </interfaces>
-</config>`
+</config>
+</configs>`
     },
     {
         id: 'cisco_nxos_vlan',
@@ -1171,7 +1184,7 @@ Utilisateur: \\u
         category: 'vlan',
         description: 'Creation VLANs OpenConfig via NETCONF NX-OS',
         icon: 'layers',
-        xml: `<?xml version="1.0" encoding="UTF-8"?>
+        xml: `<configs>
 <config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
   <vlans xmlns="http://openconfig.net/yang/vlan">
     <vlan>
@@ -1199,7 +1212,8 @@ Utilisateur: \\u
       </config>
     </vlan>
   </vlans>
-</config>`
+</config>
+</configs>`
     },
     {
         id: 'cisco_nxos_ntp',
@@ -1585,7 +1599,7 @@ Derniere connexion: $(time)
         category: 'interface',
         description: 'Configuration interface L3 via NETCONF Aruba EOS',
         icon: 'network',
-        xml: `<?xml version="1.0" encoding="UTF-8"?>
+        xml: `<configs>
 <config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
   <interfaces xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
     <interface>
@@ -1610,7 +1624,8 @@ Derniere connexion: $(time)
       </config>
     </interface>
   </interfaces>
-</config>`
+</config>
+</configs>`
     },
     {
         id: 'aruba_vlan',
