@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title|default('NETCONF Router Manager') }}{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+        .htmx-request .htmx-indicator { opacity: 1; }
+        .htmx-request.htmx-indicator { opacity: 1; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-indigo-600 text-white shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="flex items-center space-x-2">
+                        <i class="fas fa-router text-2xl"></i>
+                        <span class="font-bold text-xl">NETCONF Manager</span>
+                    </a>
+                    <div class="hidden md:flex space-x-1">
+                        <a href="/" class="px-4 py-2 rounded hover:bg-indigo-700 transition">
+                            <i class="fas fa-home mr-2"></i>Dashboard
+                        </a>
+                        <a href="/routers" class="px-4 py-2 rounded hover:bg-indigo-700 transition">
+                            <i class="fas fa-server mr-2"></i>Routeurs
+                        </a>
+                        <a href="/vlans" class="px-4 py-2 rounded hover:bg-indigo-700 transition">
+                            <i class="fas fa-network-wired mr-2"></i>VLANs
+                        </a>
+                        <a href="/logs" class="px-4 py-2 rounded hover:bg-indigo-700 transition">
+                            <i class="fas fa-history mr-2"></i>Logs
+                        </a>
+                        <a href="/lab/deploy" class="px-4 py-2 rounded hover:bg-indigo-700 transition">
+                            <i class="fas fa-bolt mr-2"></i>Déployer un Lab
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm opacity-75">v1.0.0</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="p-4 rounded mb-2 {% if message.type == 'success' %}bg-green-100 text-green-800{% elif message.type == 'error' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                {{ message.text }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-gray-800 text-white py-4 mt-8">
+        <div class="container mx-auto px-4 text-center text-sm">
+            <p>NETCONF Router Manager - Configuration via YANG/NETCONF pour Cisco IOS-XE</p>
+        </div>
+    </footer>
+
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-full opacity-0 transition-all duration-300">
+        <span id="toast-message"></span>
+    </div>
+
+    <script>
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.textContent = message;
+            toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform ${
+                type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800'
+            }`;
+            toast.classList.remove('translate-y-full', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-full', 'opacity-0');
+            }, 3000);
+        }
+
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            const response = event.detail.xhr.response;
+            if (response) {
+                try {
+                    const data = JSON.parse(response);
+                    if (data.success === false) {
+                        showToast(data.message || 'Une erreur est survenue', 'error');
+                    } else if (data.message) {
+                        showToast(data.message, 'success');
+                    }
+                } catch (e) {}
+            }
+        });
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}{% if router %}Modifier{% else %}Ajouter{% endif %} un Routeur{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <a href="/routers" class="text-indigo-600 hover:text-indigo-800 mb-4 inline-block">
+        <i class="fas fa-arrow-left mr-2"></i>Retour aux routeurs
+    </a>
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">
+        <i class="fas fa-{% if router %}edit{% else %}plus-circle{% endif %} mr-3 text-indigo-600"></i>
+        {% if router %}Modifier{% else %}Ajouter{% endif %} un Routeur
+    </h1>
+    <p class="text-gray-600">Configurez la connexion NETCONF vers le routeur Cisco IOS-XE</p>
+</div>
+
+<div class="max-w-3xl">
+    <div class="bg-white rounded-lg shadow">
+        <form id="router-form" class="p-6 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Nom du routeur <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="name" name="name" required
+                        value="{{ router.name if router else '' }}"
+                        placeholder="ex: Routeur-Orange-Paris"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label for="hostname" class="block text-sm font-medium text-gray-700 mb-2">
+                        Hostname DNS
+                    </label>
+                    <input type="text" id="hostname" name="hostname"
+                        value="{{ router.hostname if router else '' }}"
+                        placeholder="ex: router.orange.fr"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label for="ip_address" class="block text-sm font-medium text-gray-700 mb-2">
+                        Adresse IP <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="ip_address" name="ip_address" required
+                        value="{{ router.ip_address if router else '' }}"
+                        placeholder="ex: 192.168.1.1"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label for="netconf_port" class="block text-sm font-medium text-gray-700 mb-2">
+                        Port NETCONF
+                    </label>
+                    <input type="number" id="netconf_port" name="netconf_port"
+                        value="{{ router.netconf_port if router else '830' }}"
+                        min="1" max="65535"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-xs text-gray-500 mt-1">Port par défaut: 830 (SSH-NETCONF)</p>
+                </div>
+
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                        Nom d'utilisateur NETCONF <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="username" name="username" required
+                        value="{{ router.username if router else '' }}"
+                        placeholder="ex: admin"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                        Mot de passe NETCONF <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="password" name="password" required
+                            value="{{ router.password if router else '' }}"
+                            placeholder="••••••••"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button type="button" onclick="togglePassword()" 
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-eye" id="password-toggle-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="device_type" class="block text-sm font-medium text-gray-700 mb-2">
+                        Type d'équipement
+                    </label>
+                    <select id="device_type" name="device_type"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="cisco_iosxe" {% if router and router.device_type == 'cisco_iosxe' %}selected{% endif %}>Cisco IOS-XE</option>
+                        <option value="cisco_ios" {% if router and router.device_type == 'cisco_ios' %}selected{% endif %}>Cisco IOS Classic</option>
+                        <option value="juniper" {% if router and router.device_type == 'juniper' %}selected{% endif %}>Juniper JunOS</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="default_vlan" class="block text-sm font-medium text-gray-700 mb-2">
+                        VLAN par défaut
+                    </label>
+                    <input type="number" id="default_vlan" name="default_vlan"
+                        value="{{ router.default_vlan if router else '1' }}"
+                        min="1" max="4094"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-2">
+                        Localisation
+                    </label>
+                    <input type="text" id="location" name="location"
+                        value="{{ router.location if router else '' }}"
+                        placeholder="ex: DataCenter Paris"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                </label>
+                <textarea id="description" name="description" rows="3"
+                    placeholder="Notes sur ce routeur..."
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ router.description if router else '' }}</textarea>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t">
+                <div class="flex space-x-3">
+                    <button type="button" onclick="testPing()" class="px-6 py-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition">
+                        <i class="fas fa-wifi mr-2"></i>Tester Ping
+                    </button>
+                    <button type="button" onclick="testConnection()" class="px-6 py-2 border border-green-500 text-green-600 rounded-lg hover:bg-green-50 transition">
+                        <i class="fas fa-plug mr-2"></i>Tester connexion NETCONF
+                    </button>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/routers" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                        Annuler
+                    </a>
+                    <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-save mr-2"></i>{% if router %}Enregistrer{% else %}Créer{% endif %}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="test-result" class="mt-6 hidden">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">
+                <i class="fas fa-clipboard-check mr-2"></i>Résultat du test de connexion
+            </h3>
+            <div id="test-content"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const icon = document.getElementById('password-toggle-icon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+async function testPing() {
+    const form = document.getElementById('router-form');
+    const formData = new FormData(form);
+    const ip_address = formData.get('ip_address');
+
+    if (!ip_address) {
+        showToast('Veuillez entrer une adresse IP', 'error');
+        return;
+    }
+
+    const resultDiv = document.getElementById('test-result');
+    const contentDiv = document.getElementById('test-content');
+    
+    resultDiv.classList.remove('hidden');
+    contentDiv.innerHTML = '<div class="flex items-center"><i class="fas fa-spinner fa-spin mr-2"></i>Ping en cours...</div>';
+
+    try {
+        const response = await fetch('/api/routers/ping?ip_address=' + encodeURIComponent(ip_address), {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            contentDiv.innerHTML = `
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <strong>Ping réussi!</strong>
+                    </div>
+                    <p class="text-sm mb-2">${data.ip_address} est joignable</p>
+                    <div class="text-xs bg-white p-2 rounded font-mono">${data.rtt || 'RTT: N/A'}</div>
+                </div>
+            `;
+        } else {
+            contentDiv.innerHTML = `
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-times-circle mr-2"></i>
+                        <strong>Ping échoué</strong>
+                    </div>
+                    <p class="text-sm">${data.error || 'Host unreachable'}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        contentDiv.innerHTML = `
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                <p><i class="fas fa-exclamation-triangle mr-2"></i>Erreur: ${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+async function testConnection() {
+    const form = document.getElementById('router-form');
+    const formData = new FormData(form);
+    
+    const testData = {
+        ip_address: formData.get('ip_address'),
+        port: parseInt(formData.get('netconf_port')) || 830,
+        username: formData.get('username'),
+        password: formData.get('password')
+    };
+
+    const resultDiv = document.getElementById('test-result');
+    const contentDiv = document.getElementById('test-content');
+    
+    resultDiv.classList.remove('hidden');
+    contentDiv.innerHTML = '<div class="flex items-center"><i class="fas fa-spinner fa-spin mr-2"></i>Test en cours...</div>';
+
+    try {
+        const response = await fetch('/api/routers/test-connection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(testData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            contentDiv.innerHTML = `
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <strong>Connexion réussie!</strong>
+                    </div>
+                    <p class="text-sm">${data.message}</p>
+                </div>
+            `;
+        } else {
+            contentDiv.innerHTML = `
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-times-circle mr-2"></i>
+                        <strong>Connexion échouée</strong>
+                    </div>
+                    <p class="text-sm">${data.message}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        contentDiv.innerHTML = `
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                <p><i class="fas fa-exclamation-triangle mr-2"></i>Erreur: ${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+document.getElementById('router-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        const response = await fetch('/api/routers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            showToast('Routeur créé avec succès', 'success');
+            setTimeout(() => window.location.href = '/routers', 1000);
+        } else {
+            const error = await response.json();
+            showToast(error.detail || 'Erreur lors de la création', 'error');
+        }
+    } catch (error) {
+        showToast('Erreur: ' + error.message, 'error');
+    }
+});
+</script>
+{% endblock %}

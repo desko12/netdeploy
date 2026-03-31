@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+
+{% block title %}{{ router.name }} - NETCONF Router Manager{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <a href="/routers" class="text-indigo-600 hover:text-indigo-800 mb-4 inline-block">
+        <i class="fas fa-arrow-left mr-2"></i>Retour aux routeurs
+    </a>
+    <div class="flex justify-between items-start">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-router mr-3 text-indigo-600"></i>{{ router.name }}
+            </h1>
+            <p class="text-gray-600">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    {% if router.status == 'active' %}bg-green-100 text-green-800
+                    {% elif router.status == 'error' %}bg-red-100 text-red-800
+                    {% elif router.status == 'disconnected' %}bg-yellow-100 text-yellow-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ router.status }}
+                </span>
+                <span class="ml-2">{{ router.ip_address }}:{{ router.netconf_port }}</span>
+            </p>
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="testConnection()" class="px-4 py-2 border border-green-500 text-green-600 rounded-lg hover:bg-green-50 transition">
+                <i class="fas fa-plug mr-2"></i>Tester connexion
+            </button>
+            <a href="/routers/{{ router.id }}/edit" class="px-4 py-2 border border-blue-500 text-blue-600 rounded-lg hover:bg-blue-50 transition">
+                <i class="fas fa-edit mr-2"></i>Modifier
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="border-b">
+                <nav class="flex -mb-px">
+                    <button onclick="showTab('overview')" id="tab-overview" class="tab-btn px-6 py-3 border-b-2 border-indigo-500 text-indigo-600 font-medium">
+                        Overview
+                    </button>
+                    <button onclick="showTab('vlans')" id="tab-vlans" class="tab-btn px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        VLANs
+                    </button>
+                    <button onclick="showTab('interfaces')" id="tab-interfaces" class="tab-btn px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        Interfaces
+                    </button>
+                    <button onclick="showTab('routing')" id="tab-routing" class="tab-btn px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        Routing
+                    </button>
+                    <button onclick="showTab('logs')" id="tab-logs" class="tab-btn px-6 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        Logs
+                    </button>
+                </nav>
+            </div>
+
+            <div id="content-overview" class="tab-content p-6">
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500 mb-4">Informations de connexion</h3>
+                        <dl class="space-y-3">
+                            <div class="flex justify-between">
+                                <dt class="text-gray-600">Adresse IP</dt>
+                                <dd class="font-medium">{{ router.ip_address }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-600">Port NETCONF</dt>
+                                <dd class="font-medium">{{ router.netconf_port }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-600">Type d'équipement</dt>
+                                <dd class="font-medium">{{ router.device_type }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-600">VLAN par défaut</dt>
+                                <dd class="font-medium">{{ router.default_vlan }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500 mb-4">Détails</h3>
+                        <dl class="space-y-3">
+                            <div class="flex justify-between">
+                                <dt class="text-gray-600">Hostname</dt>
+                                <dd class="font-medium">{{ router.hostname or '-' }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-600">Localisation</dt>
+                                <dd class="font-medium">{{ router.location or '-' }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-600">Créé le</dt>
+                                <dd class="font-medium">{{ router.created_at.strftime('%d/%m/%Y') }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-600">Modifié le</dt>
+                                <dd class="font-medium">{{ router.updated_at.strftime('%d/%m/%Y') }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+                {% if router.description %}
+                <div class="mt-6 pt-6 border-t">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">Description</h3>
+                    <p class="text-gray-700">{{ router.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div id="content-vlans" class="tab-content p-6 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">VLANs configurés</h3>
+                    <a href="/routers/{{ router.id }}/vlans/add" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-plus mr-2"></i>Ajouter VLAN
+                    </a>
+                </div>
+                <div id="vlans-list" class="space-y-3">
+                    {% for vlan in router.vlans %}
+                    <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4">
+                                <span class="text-indigo-600 font-bold">{{ vlan.vlan_id }}</span>
+                            </div>
+                            <div>
+                                <p class="font-medium">{{ vlan.name }}</p>
+                                <p class="text-sm text-gray-500">{{ vlan.description or 'Aucune description' }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="applyVlan({{ vlan.id }})" class="px-3 py-1 border border-green-500 text-green-600 rounded hover:bg-green-50">
+                                <i class="fas fa-upload mr-1"></i>Appliquer
+                            </button>
+                            <a href="/vlans/{{ vlan.id }}/edit" class="px-3 py-1 border border-blue-500 text-blue-600 rounded hover:bg-blue-50">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button onclick="deleteVlan({{ vlan.id }})" class="px-3 py-1 border border-red-500 text-red-600 rounded hover:bg-red-50">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 text-center py-8">Aucun VLAN configuré</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="content-interfaces" class="tab-content p-6 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Interfaces configurées</h3>
+                    <a href="/routers/{{ router.id }}/interfaces/add" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-plus mr-2"></i>Ajouter Interface
+                    </a>
+                </div>
+                <div id="interfaces-list" class="space-y-3">
+                    {% for interface in router.interfaces %}
+                    <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-ethernet text-blue-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">{{ interface.name }}</p>
+                                <p class="text-sm text-gray-500">
+                                    {{ interface.ip_address or 'Sans IP' }} 
+                                    {% if interface.vlan_id %} | VLAN {{ interface.vlan_id }}{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-1 text-xs rounded-full {% if interface.enabled %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ 'UP' if interface.enabled else 'DOWN' }}
+                            </span>
+                            <button onclick="applyInterface({{ interface.id }})" class="px-3 py-1 border border-green-500 text-green-600 rounded hover:bg-green-50">
+                                <i class="fas fa-upload mr-1"></i>Appliquer
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 text-center py-8">Aucune interface configurée</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="content-routing" class="tab-content p-6 hidden">
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">BGP</h3>
+                            <a href="/routers/{{ router.id }}/bgp/add" class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                                <i class="fas fa-plus mr-1"></i>Ajouter
+                            </a>
+                        </div>
+                        {% if router.bgp_configs %}
+                        <div class="space-y-2">
+                            {% for bgp in router.bgp_configs %}
+                            <div class="p-3 border rounded">
+                                <p class="font-medium">AS {{ bgp.local_as }} → {{ bgp.neighbor_ip }}</p>
+                                <p class="text-sm text-gray-500">Remote AS: {{ bgp.neighbor_as }}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-gray-500">Aucune config BGP</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold">OSPF</h3>
+                            <a href="/routers/{{ router.id }}/ospf/add" class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                                <i class="fas fa-plus mr-1"></i>Ajouter
+                            </a>
+                        </div>
+                        {% if router.ospf_configs %}
+                        <div class="space-y-2">
+                            {% for ospf in router.ospf_configs %}
+                            <div class="p-3 border rounded">
+                                <p class="font-medium">Process {{ ospf.process_id }}</p>
+                                <p class="text-sm text-gray-500">{{ ospf.network }} Area {{ ospf.area_id }}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-gray-500">Aucune config OSPF</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div id="content-logs" class="tab-content p-6 hidden">
+                <h3 class="text-lg font-semibold mb-4">Historique des configurations</h3>
+                <div id="router-logs" class="space-y-2">
+                    {% for log in router.config_logs[:10] %}
+                    <div class="flex items-center justify-between p-3 border rounded">
+                        <div class="flex items-center">
+                            <i class="fas {% if log.status == 'success' %}fa-check-circle text-green-600{% elif log.status == 'failed' %}fa-times-circle text-red-600{% else %}fa-clock text-yellow-600{% endif %} mr-3"></i>
+                            <div>
+                                <p class="font-medium">{{ log.config_type }} - {{ log.action }}</p>
+                                <p class="text-sm text-gray-500">{{ log.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                            </div>
+                        </div>
+                        {% if log.status == 'failed' %}
+                        <button onclick="showLogError({{ log.id }})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p class="text-gray-500 text-center py-8">Aucun historique</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="lg:col-span-1">
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h3 class="text-lg font-semibold mb-4">
+                <i class="fas fa-clipboard-list mr-2 text-indigo-600"></i>Actions rapides
+            </h3>
+            <div class="space-y-3">
+                <button onclick="runPing()" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-left">
+                    <i class="fas fa-wifi mr-2"></i>Tester ping
+                </button>
+                <button onclick="refreshConfig()" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-left">
+                    <i class="fas fa-sync mr-2"></i>Rafraîchir configuration
+                </button>
+                <button onclick="getRunningConfig()" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-left">
+                    <i class="fas fa-download mr-2"></i>Voir config actuelle
+                </button>
+                <a href="/api/routers/{{ router.id }}/export" class="block w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-left">
+                    <i class="fas fa-file-export mr-2"></i>Exporter la config
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">
+                <i class="fas fa-info-circle mr-2 text-indigo-600"></i>Statistiques
+            </h3>
+            <dl class="space-y-3">
+                <div class="flex justify-between">
+                    <dt class="text-gray-600">VLANs</dt>
+                    <dd class="font-bold">{{ router.vlans|length }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-600">Interfaces</dt>
+                    <dd class="font-bold">{{ router.interfaces|length }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-600">Peers BGP</dt>
+                    <dd class="font-bold">{{ router.bgp_configs|length }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-600">Configs OSPF</dt>
+                    <dd class="font-bold">{{ router.ospf_configs|length }}</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('border-indigo-500', 'text-indigo-600');
+        el.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    document.getElementById('content-' + tabName).classList.remove('hidden');
+    document.getElementById('tab-' + tabName).classList.add('border-indigo-500', 'text-indigo-600');
+    document.getElementById('tab-' + tabName).classList.remove('border-transparent', 'text-gray-500');
+}
+
+async function testConnection() {
+    try {
+        const response = await fetch('/api/routers/{{ router.id }}/test', { method: 'POST' });
+        const data = await response.json();
+        showToast(data.success ? 'Connexion réussie' : 'Erreur: ' + data.message, data.success ? 'success' : 'error');
+    } catch (error) {
+        showToast('Erreur: ' + error.message, 'error');
+    }
+}
+
+async function runPing() {
+    try {
+        const response = await fetch('/api/routers/{{ router.id }}/ping', { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+            showToast('Ping réussi - ' + data.rtt, 'success');
+        } else {
+            showToast('Ping échoué: ' + (data.error || 'Host unreachable'), 'error');
+        }
+    } catch (error) {
+        showToast('Erreur: ' + error.message, 'error');
+    }
+}
+
+async function applyVlan(vlanId) {
+    try {
+        const response = await fetch('/api/vlans/' + vlanId + '/apply', { method: 'POST' });
+        const data = await response.json();
+        showToast(data.message, data.success ? 'success' : 'error');
+    } catch (error) {
+        showToast('Erreur: ' + error.message, 'error');
+    }
+}
+
+async function applyInterface(interfaceId) {
+    try {
+        const response = await fetch('/api/interfaces/' + interfaceId + '/apply', { method: 'POST' });
+        const data = await response.json();
+        showToast(data.message, data.success ? 'success' : 'error');
+    } catch (error) {
+        showToast('Erreur: ' + error.message, 'error');
+    }
+}
+
+async function deleteVlan(vlanId) {
+    if (!confirm('Supprimer ce VLAN ?')) return;
+    try {
+        const response = await fetch('/api/vlans/' + vlanId, { method: 'DELETE' });
+        if (response.ok) {
+            showToast('VLAN supprimé', 'success');
+            location.reload();
+        }
+    } catch (error) {
+        showToast('Erreur: ' + error.message, 'error');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Routeurs - NETCONF Router Manager{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex justify-between items-center">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+            <i class="fas fa-server mr-3 text-indigo-600"></i>Routeurs
+        </h1>
+        <p class="text-gray-600">Gestion des routeurs Cisco IOS-XE via NETCONF</p>
+    </div>
+    <a href="/routers/add" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium transition">
+        <i class="fas fa-plus mr-2"></i>Ajouter un Routeur
+    </a>
+</div>
+
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="p-4 border-b">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <input type="text" id="search-input" placeholder="Rechercher un routeur..." 
+                    class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    hx-get="/routers/search" hx-trigger="keyup changed delay:300ms" hx-target="#routers-table-body">
+                <select id="status-filter" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Tous les statuts</option>
+                    <option value="active">Actif</option>
+                    <option value="disconnected">Déconnecté</option>
+                    <option value="error">Erreur</option>
+                </select>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="testAllConnections()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    <i class="fas fa-plug mr-2"></i>Tester toutes les connexions
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP Address</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Port NETCONF</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Localisation</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="routers-table-body" class="bg-white divide-y divide-gray-200">
+                {% for router in routers %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-router text-indigo-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ router.name }}</div>
+                                <div class="text-sm text-gray-500">{{ router.hostname or '' }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ router.ip_address }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ router.netconf_port }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if router.status == 'active' %}bg-green-100 text-green-800
+                            {% elif router.status == 'error' %}bg-red-100 text-red-800
+                            {% elif router.status == 'disconnected' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ router.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ router.location or '-' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="/routers/{{ router.id }}" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="/routers/{{ router.id }}/edit" class="text-blue-600 hover:text-blue-900 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button onclick="testConnection({{ router.id }})" class="text-green-600 hover:text-green-900 mr-3">
+                            <i class="fas fa-plug"></i>
+                        </button>
+                        <button onclick="deleteRouter({{ router.id }})" class="text-red-600 hover:text-red-900">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                        <i class="fas fa-server text-4xl mb-4"></i>
+                        <p class="text-lg">Aucun routeur configuré</p>
+                        <a href="/routers/add" class="text-indigo-600 hover:text-indigo-800 mt-2 inline-block">
+                            Ajouter votre premier routeur
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function testConnection(routerId) {
+    try {
+        const response = await fetch(`/api/routers/${routerId}/test`, { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(`Connexion réussie vers le routeur`, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(`Erreur: ${data.message}`, 'error');
+        }
+    } catch (error) {
+        showToast('Erreur lors du test de connexion', 'error');
+    }
+}
+
+async function testAllConnections() {
+    const buttons = document.querySelectorAll('button[onclick^="testConnection"]');
+    for (const btn of buttons) {
+        const match = btn.getAttribute('onclick').match(/testConnection\((\d+)\)/);
+        if (match) {
+            await testConnection(parseInt(match[1]));
+        }
+    }
+}
+
+async function deleteRouter(routerId) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce routeur ?')) return;
+    
+    try {
+        const response = await fetch(`/api/routers/${routerId}`, { method: 'DELETE' });
+        if (response.ok) {
+            showToast('Routeur supprimé', 'success');
+            setTimeout(() => location.reload(), 500);
+        } else {
+            showToast('Erreur lors de la suppression', 'error');
+        }
+    } catch (error) {
+        showToast('Erreur lors de la suppression', 'error');
+    }
+}
+</script>
+{% endblock %}

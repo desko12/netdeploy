@@ -1,0 +1,13 @@
+{
+  "name": "netdeploy-api",
+  "version": "1.0.0",
+  "description": "Network Configuration Deployer API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "xml2js": "^0.6.2"
+  }
+}

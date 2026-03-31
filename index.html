@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetDeploy - Gestionnaire de Configuration Réseau</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+        }
+        .cm-editor {
+            height: 100%;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+        .cm-editor .cm-content { padding: 12px 0; }
+        .cm-editor .cm-gutters {
+            background-color: #1e293b;
+            border-right: 1px solid #334155;
+        }
+        .cm-editor .cm-activeLineGutter { background-color: #334155; }
+        .cm-editor .cm-activeLine { background-color: rgba(51, 65, 85, 0.3); }
+        .CodeMirror { background: #0f172a; }
+        .toast-enter { animation: slideIn 300ms ease-out; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-exit { animation: slideOut 300ms ease-out forwards; }
+        @keyframes slideOut {
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        .nav-item.active { background: linear-gradient(90deg, rgba(59,130,246,0.2) 0%, transparent 100%); border-left-color: #3b82f6; }
+        .progress-glow { animation: glow 2s ease-in-out infinite; }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.4); }
+        }
+        .deploy-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        }
+        .modal-backdrop { backdrop-filter: blur(4px); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .fade-in { animation: fadeIn 300ms ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .pulse-dot { animation: pulseDot 2s ease-in-out infinite; }
+        @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body class="text-slate-100 font-sans">
+    <!-- Header -->
+    <header class="h-16 bg-slate-800/80 backdrop-blur-sm border-b border-slate-700 flex items-center justify-between px-6 sticky top-0 z-40">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 deploy-gradient rounded-lg flex items-center justify-center shadow-lg">
+                <i data-lucide="network" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-white">NetDeploy</h1>
+                <p class="text-xs text-slate-400">Gestionnaire de Configuration Réseau</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <div id="connectionIndicator" class="flex items-center gap-2 px-3 py-1.5 bg-slate-700/50 rounded-lg">
+                <span class="w-2 h-2 bg-slate-500 rounded-full"></span>
+                <span class="text-sm text-slate-400">Déconnecté</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-slate-400" id="currentTime"></span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex h-[calc(100vh-4rem)]">
+        <!-- Sidebar Navigation -->
+        <nav class="w-64 bg-slate-800/50 border-r border-slate-700 flex flex-col">
+            <div class="p-4 space-y-1">
+                <button onclick="showSection('dashboard')" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all border-l-4 border-transparent hover:bg-slate-700/50" data-section="dashboard">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 text-slate-400"></i>
+                    <span class="text-slate-200 font-medium">Tableau de bord</span>
+                </button>
+                <button onclick="showSection('equipment')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all border-l-4 border-transparent hover:bg-slate-700/50" data-section="equipment">
+                    <i data-lucide="server" class="w-5 h-5 text-slate-400"></i>
+                    <span class="text-slate-200 font-medium">Équipements</span>
+                </button>
+                <button onclick="showSection('editor')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all border-l-4 border-transparent hover:bg-slate-700/50" data-section="editor">
+                    <i data-lucide="file-code-2" class="w-5 h-5 text-slate-400"></i>
+                    <span class="text-slate-200 font-medium">Éditeur XML</span>
+                </button>
+                <button onclick="showSection('deploy')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all border-l-4 border-transparent hover:bg-slate-700/50" data-section="deploy">
+                    <i data-lucide="rocket" class="w-5 h-5 text-slate-400"></i>
+                    <span class="text-slate-200 font-medium">Déploiement</span>
+                </button>
+                <button onclick="showSection('history')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all border-l-4 border-transparent hover:bg-slate-700/50" data-section="history">
+                    <i data-lucide="history" class="w-5 h-5 text-slate-400"></i>
+                    <span class="text-slate-200 font-medium">Historique</span>
+                </button>
+            </div>
+            <div class="mt-auto p-4 border-t border-slate-700">
+                <div class="text-xs text-slate-500 text-center">NetDeploy v2.1</div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-auto p-6">
+            <!-- Dashboard Section -->
+            <section id="section-dashboard" class="section">
+                <h2 class="text-2xl font-bold text-white mb-6">Tableau de bord</h2>
+                
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-slate-800/50 rounded-xl p-5 border border-slate-700 card-hover transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm">Équipements totaux</p>
+                                <p class="text-3xl font-bold text-white mt-1" id="stat-total">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="server" class="w-6 h-6 text-blue-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800/50 rounded-xl p-5 border border-slate-700 card-hover transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm">En ligne</p>
+                                <p class="text-3xl font-bold text-green-400 mt-1" id="stat-online">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="wifi" class="w-6 h-6 text-green-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800/50 rounded-xl p-5 border border-slate-700 card-hover transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm">Déploiements réussis</p>
+                                <p class="text-3xl font-bold text-emerald-400 mt-1" id="stat-success">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="check-circle" class="w-6 h-6 text-emerald-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-800/50 rounded-xl p-5 border border-slate-700 card-hover transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm">Déploiements échoués</p>
+                                <p class="text-3xl font-bold text-red-400 mt-1" id="stat-failed">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="x-circle" class="w-6 h-6 text-red-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Equipment Status -->
+                    <div class="bg-slate-800/50 rounded-xl border border-slate-700">
+                        <div class="p-4 border-b border-slate-700 flex items-center justify-between">
+                            <h3 class="font-semibold text-white flex items-center gap-2">
+                                <i data-lucide="activity" class="w-4 h-4 text-slate-400"></i>
+                                État des équipements
+                            </h3>
+                            <button onclick="refreshEquipmentStatus()" class="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                Actualiser
+                            </button>
+                        </div>
+                        <div class="p-4 max-h-80 overflow-auto" id="equipment-status-list">
+                            <div class="text-center text-slate-500 py-8">
+                                <i data-lucide="server-off" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                                <p>Aucun équipement</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Deployments -->
+                    <div class="bg-slate-800/50 rounded-xl border border-slate-700">
+                        <div class="p-4 border-b border-slate-700 flex items-center justify-between">
+                            <h3 class="font-semibold text-white flex items-center gap-2">
+                                <i data-lucide="clock" class="w-4 h-4 text-slate-400"></i>
+                                Déploiements récents
+                            </h3>
+                            <button onclick="showSection('history')" class="text-sm text-blue-400 hover:text-blue-300">
+                                Voir tout
+                            </button>
+                        </div>
+                        <div class="p-4 max-h-80 overflow-auto" id="recent-deployments">
+                            <div class="text-center text-slate-500 py-8">
+                                <i data-lucide="package-x" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                                <p>Aucun déploiement</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Equipment Section -->
+            <section id="section-equipment" class="section hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Gestion des équipements</h2>
+                    <button onclick="openAddEquipmentModal()" class="deploy-gradient px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-opacity">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        Ajouter un équipement
+                    </button>
+                </div>
+
+                <!-- Equipment Filters -->
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700 mb-6">
+                    <div class="p-4 flex flex-wrap gap-4 items-center">
+                        <div class="relative flex-1 min-w-[200px]">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="equipmentSearch" placeholder="Rechercher un équipement..." class="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-blue-500 transition-colors" oninput="filterEquipment()">
+                        </div>
+                        <select id="equipmentFilterType" class="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" onchange="filterEquipment()">
+                            <option value="">Tous les types</option>
+                            <option value="cisco">Cisco</option>
+                            <option value="juniper">Juniper</option>
+                            <option value="aruba">Aruba</option>
+                            <option value="fortinet">Fortinet</option>
+                        </select>
+                        <select id="equipmentFilterStatus" class="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" onchange="filterEquipment()">
+                            <option value="">Tous les statuts</option>
+                            <option value="online">En ligne</option>
+                            <option value="offline">Hors ligne</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Equipment Table -->
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-slate-700/50">
+                            <tr>
+                                <th class="text-left px-4 py-3 text-sm font-medium text-slate-300">Nom</th>
+                                <th class="text-left px-4 py-3 text-sm font-medium text-slate-300">Adresse IP</th>
+                                <th class="text-left px-4 py-3 text-sm font-medium text-slate-300">Type / OS</th>
+                                <th class="text-left px-4 py-3 text-sm font-medium text-slate-300">Port NETCONF</th>
+                                <th class="text-left px-4 py-3 text-sm font-medium text-slate-300">Statut</th>
+                                <th class="text-right px-4 py-3 text-sm font-medium text-slate-300">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="equipmentTableBody" class="divide-y divide-slate-700">
+                            <tr>
+                                <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                                    <i data-lucide="server-off" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                                    <p>Aucun équipement configuré</p>
+                                    <p class="text-sm mt-1">Cliquez sur "Ajouter un équipement" pour commencer</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Editor Section -->
+            <section id="section-editor" class="section hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Éditeur XML NETCONF</h2>
+                    <div class="flex items-center gap-3">
+                        <select id="templateSelect" class="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" onchange="loadTemplate()">
+                            <option value="">-- Choisir un template --</option>
+                            <option value="cisco_vlan">Cisco IOS-XE - VLAN</option>
+                            <option value="cisco_interface">Cisco IOS-XE - Interface</option>
+                            <option value="cisco_bgp">Cisco IOS-XE - BGP</option>
+                            <option value="cisco_ospf">Cisco IOS-XE - OSPF</option>
+                            <option value="juniper_vlan">Juniper JunOS - VLAN</option>
+                            <option value="juniper_interface">Juniper JunOS - Interface</option>
+                            <option value="aruba_vlan">Aruba EOS - VLAN</option>
+                            <option value="fortinet_interface">Fortinet FortiOS - Interface</option>
+                        </select>
+                        <button onclick="saveTemplate()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            Sauvegarder
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Validation Status -->
+                <div id="xmlValidation" class="bg-slate-800/50 rounded-lg border border-slate-700 p-3 mb-4 flex items-center gap-3">
+                    <i data-lucide="check-circle" class="w-5 h-5 text-slate-400"></i>
+                    <span class="text-sm text-slate-400" id="validationMessage">XML valide</span>
+                </div>
+
+                <!-- Editor -->
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden" style="height: calc(100vh - 280px);">
+                    <div class="h-full flex flex-col">
+                        <div class="p-3 border-b border-slate-700 flex items-center justify-between bg-slate-800/80">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="file-code" class="w-4 h-4 text-slate-400"></i>
+                                <span class="text-sm text-slate-300" id="editorFileName">Sans titre.xml</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-slate-500">
+                                <span id="editorCursorPos">Ln 1, Col 1</span>
+                            </div>
+                        </div>
+                        <div class="flex-1 overflow-hidden">
+                            <textarea id="xmlEditor"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Deploy Section -->
+            <section id="section-deploy" class="section hidden">
+                <h2 class="text-2xl font-bold text-white mb-6">Déployer une configuration</h2>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Target Selection -->
+                    <div class="bg-slate-800/50 rounded-xl border border-slate-700">
+                        <div class="p-4 border-b border-slate-700">
+                            <h3 class="font-semibold text-white flex items-center gap-2">
+                                <i data-lucide="target" class="w-4 h-4 text-slate-400"></i>
+                                Sélectionner les équipements cibles
+                            </h3>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex items-center justify-between mb-4">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="selectAllEquipments" class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500" onchange="toggleAllEquipments()">
+                                    <span class="text-sm text-slate-300">Tout sélectionner</span>
+                                </label>
+                                <button onclick="refreshEquipmentForDeploy()" class="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                    Actualiser
+                                </button>
+                            </div>
+                            <div id="deployEquipmentList" class="space-y-2 max-h-64 overflow-auto">
+                                <div class="text-center text-slate-500 py-4">
+                                    <p>Aucun équipement disponible</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configuration Selection -->
+                    <div class="bg-slate-800/50 rounded-xl border border-slate-700">
+                        <div class="p-4 border-b border-slate-700">
+                            <h3 class="font-semibold text-white flex items-center gap-2">
+                                <i data-lucide="file-code-2" class="w-4 h-4 text-slate-400"></i>
+                                Configuration à déployer
+                            </h3>
+                        </div>
+                        <div class="p-4">
+                            <div class="mb-4">
+                                <label class="block text-sm text-slate-400 mb-2">Sélectionner un template sauvegardé</label>
+                                <select id="savedTemplateSelect" class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" onchange="loadSavedTemplate()">
+                                    <option value="">-- Choisir une configuration --</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm text-slate-400 mb-2">Ou entrer le XML directement</label>
+                                <textarea id="quickXmlInput" placeholder="<config target=&quot;equip1&quot; host=&quot;192.168.1.1&quot; os=&quot;ios&quot; user=&quot;admin&quot; password=&quot;pass&quot;>&#10;  <vlan id=&quot;100&quot;>&#10;    <name>CLIENT_VLAN</name>&#10;  </vlan>&#10;</config>" class="w-full h-32 bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                            </div>
+                            <div id="quickXmlValidation" class="text-sm"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deploy Button -->
+                <div class="mt-6 flex justify-center">
+                    <button id="deployButton" onclick="startDeployment()" class="deploy-gradient px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-3 hover:opacity-90 transition-all shadow-xl hover:shadow-2xl" disabled>
+                        <i data-lucide="rocket" class="w-6 h-6"></i>
+                        Déployer la configuration
+                    </button>
+                </div>
+
+                <!-- Deployment Progress -->
+                <div id="deploymentProgress" class="hidden mt-8">
+                    <div class="bg-slate-800/50 rounded-xl border border-slate-700 p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-white text-lg flex items-center gap-2">
+                                <i data-lucide="loader-2" class="w-5 h-5 text-blue-400 animate-spin"></i>
+                                Déploiement en cours...
+                            </h3>
+                            <span id="deployProgressPercent" class="text-2xl font-bold text-blue-400">0%</span>
+                        </div>
+                        <div class="h-3 bg-slate-700 rounded-full overflow-hidden mb-4">
+                            <div id="deployProgressBar" class="h-full deploy-gradient rounded-full transition-all duration-500 progress-glow" style="width: 0%"></div>
+                        </div>
+                        <p class="text-sm text-slate-400" id="deployProgressMessage">Initialisation...</p>
+                    </div>
+
+                    <!-- Device Results -->
+                    <div id="deploymentResults" class="mt-6 space-y-3"></div>
+                </div>
+            </section>
+
+            <!-- History Section -->
+            <section id="section-history" class="section hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Historique des déploiements</h2>
+                    <button onclick="loadHistory()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Actualiser
+                    </button>
+                </div>
+
+                <!-- History Filters -->
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700 mb-6">
+                    <div class="p-4 flex flex-wrap gap-4 items-center">
+                        <div class="relative flex-1 min-w-[200px]">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="historySearch" placeholder="Rechercher..." class="w-full bg-slate-700/50 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-blue-500" oninput="filterHistory()">
+                        </div>
+                        <select id="historyFilterStatus" class="bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" onchange="filterHistory()">
+                            <option value="">Tous les statuts</option>
+                            <option value="success">Succès</option>
+                            <option value="failed">Échoué</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- History List -->
+                <div id="historyList" class="space-y-4">
+                    <div class="bg-slate-800/50 rounded-xl border border-slate-700 p-8 text-center text-slate-500">
+                        <i data-lucide="history" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+                        <p class="text-lg">Aucun déploiement dans l'historique</p>
+                        <p class="text-sm mt-1">Les déploiements apparaîtront ici</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add/Edit Equipment Modal -->
+    <div id="equipmentModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 modal-backdrop" onclick="closeEquipmentModal()"></div>
+        <div class="relative bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-lg fade-in shadow-2xl">
+            <div class="p-6 border-b border-slate-700 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white" id="modalTitle">Ajouter un équipement</h3>
+                <button onclick="closeEquipmentModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="equipmentForm" class="p-6 space-y-4">
+                <input type="hidden" id="equipmentId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Nom de l'équipement *</label>
+                        <input type="text" id="equipName" required class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="Core-Router-01">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Adresse IP *</label>
+                        <input type="text" id="equipIp" required class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="192.168.1.1">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Type *</label>
+                        <select id="equipType" required class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+                            <option value="cisco">Cisco</option>
+                            <option value="juniper">Juniper</option>
+                            <option value="aruba">Aruba</option>
+                            <option value="fortinet">Fortinet</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Système d'exploitation *</label>
+                        <select id="equipOs" required class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+                            <option value="ios">IOS / IOS-XE</option>
+                            <option value="nxos">NX-OS</option>
+                            <option value="junos">JunOS</option>
+                            <option value="eos">EOS</option>
+                            <option value="fortios">FortiOS</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Port NETCONF</label>
+                    <input type="number" id="equipPort" value="830" class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="830">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Nom d'utilisateur *</label>
+                        <input type="text" id="equipUser" required class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="admin">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Mot de passe *</label>
+                        <input type="password" id="equipPass" required class="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500" placeholder="••••••••">
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 pt-2">
+                    <input type="checkbox" id="testConnection" class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500">
+                    <label for="testConnection" class="text-sm text-slate-400">Tester la connexion après l'ajout</label>
+                </div>
+            </form>
+            <div class="p-6 border-t border-slate-700 flex justify-end gap-3">
+                <button onclick="closeEquipmentModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors">
+                    Annuler
+                </button>
+                <button onclick="saveEquipment()" class="deploy-gradient px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+                    Sauvegarder
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deployment Confirmation Modal -->
+    <div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 modal-backdrop" onclick="closeConfirmModal()"></div>
+        <div class="relative bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-md fade-in shadow-2xl">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="alert-triangle" class="w-8 h-8 text-amber-500"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Confirmer le déploiement</h3>
+                <p class="text-slate-400 mb-6" id="confirmMessage">Êtes-vous sûr de vouloir déployer cette configuration ?</p>
+                <div id="confirmTargetList" class="bg-slate-700/50 rounded-lg p-3 mb-6 text-left text-sm max-h-32 overflow-auto"></div>
+                <div class="flex gap-3 justify-center">
+                    <button onclick="closeConfirmModal()" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors">
+                        Annuler
+                    </button>
+                    <button onclick="confirmDeployment()" class="deploy-gradient px-6 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+                        Déployer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Detail Modal -->
+    <div id="historyDetailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 modal-backdrop" onclick="closeHistoryDetailModal()"></div>
+        <div class="relative bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-2xl fade-in shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+                <h3 class="text-lg font-semibold text-white" id="historyDetailTitle">Détails du déploiement</h3>
+                <button onclick="closeHistoryDetailModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-auto flex-1" id="historyDetailContent">
+                <!-- Dynamic content -->
+            </div>
+            <div class="p-6 border-t border-slate-700 flex justify-end gap-3 flex-shrink-0">
+                <button onclick="closeHistoryDetailModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors">
+                    Fermer
+                </button>
+                <button onclick="redepolyFromHistory()" class="deploy-gradient px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity flex items-center gap-2">
+                    <i data-lucide="repeat" class="w-4 h-4"></i>
+                    Redéployer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-20 right-4 z-50 space-y-2 max-w-sm"></div>
+
+    <script>
+        lucide.createIcons();
+
+        // State
+        let equipment = [];
+        let history = [];
+        let currentSection = 'dashboard';
+        let editor = null;
+        let selectedDeployEquipments = [];
+        let currentHistoryItem = null;
+
+        // Templates
+        const templates = {
+            cisco_vlan: `<config target="router-01" host="192.168.1.1" os="ios" user="admin" password="password">
+  <vlan id="100">
+    <name>CLIENT_VLAN</name>
+    <state>present</state>
+  </vlan>
+</config>`,
+            cisco_interface: `<config target="switch-01" host="192.168.1.10" os="ios" user="admin" password="password">
+  <interface name="GigabitEthernet0/0">
+    <description>Uplink to Core</description>
+    <ip>10.0.0.1</ip>
+    <mask>255.255.255.0</mask>
+    <enabled>true</enabled>
+  </interface>
+</config>`,
+            cisco_bgp: `<config target="router-01" host="192.168.1.1" os="ios" user="admin" password="password">
+  <bgp as="65001">
+    <neighbor ip="192.168.1.2" remote-as="65002">
+      <description>Peer EBGP</description>
+    </neighbor>
+  </bgp>
+</config>`,
+            cisco_ospf: `<config target="router-01" host="192.168.1.1" os="ios" user="admin" password="password">
+  <ospf process-id="1">
+    <area id="0">
+      <network>10.0.0.0</network>
+      <wildcard>0.0.0.255</wildcard>
+    </area>
+  </ospf>
+</config>`,
+            juniper_vlan: `<config target="switch-01" host="192.168.2.1" os="junos" user="admin" password="password">
+  <vlan id="200">
+    <name>DATA_VLAN</name>
+    <description>Data VLAN</description>
+  </vlan>
+</config>`,
+            juniper_interface: `<config target="switch-01" host="192.168.2.1" os="junos" user="admin" password="password">
+  <interface name="ge-0/0/0">
+    <description>Server Port</description>
+    <unit>
+      <number>0</number>
+      <family>
+        <inet>
+          <address>10.1.0.1/24</address>
+        </inet>
+      </family>
+    </unit>
+  </interface>
+</config>`,
+            aruba_vlan: `<config target="switch-aruba" host="192.168.3.1" os="eos" user="admin" password="password">
+  <vlan id="300">
+    <name>VOICE_VLAN</name>
+  </vlan>
+</config>`,
+            fortinet_interface: `<config target="fortigate-01" host="192.168.4.1" os="fortios" user="admin" password="password">
+  <interface name="port1">
+    <ip>10.100.0.1</ip>
+    <mask>255.255.255.0</mask>
+    <description>WAN Interface</description>
+  </interface>
+</config>`
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initEditor();
+            loadEquipment();
+            loadHistory();
+            updateTime();
+            setInterval(updateTime, 1000);
+            lucide.createIcons();
+        });
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Navigation
+        function showSection(section) {
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${section}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+            
+            currentSection = section;
+            lucide.createIcons();
+            
+            if (section === 'deploy') {
+                refreshEquipmentForDeploy();
+            }
+        }
+
+        // Toast notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'border-green-500 bg-green-500/10',
+                error: 'border-red-500 bg-red-500/10',
+                warning: 'border-amber-500 bg-amber-500/10',
+                info: 'border-blue-500 bg-blue-500/10'
+            };
+            
+            const icons = {
+                success: 'check-circle',
+                error: 'x-circle',
+                warning: 'alert-triangle',
+                info: 'info'
+            };
+            
+            const textColors = {
+                success: 'text-green-500',
+                error: 'text-red-500',
+                warning: 'text-amber-500',
+                info: 'text-blue-500'
+            };
+            
+            toast.className = `toast-enter border-l-4 ${colors[type]} rounded-lg p-4 shadow-xl backdrop-blur-sm`;
+            toast.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <i data-lucide="${icons[type]}" class="w-5 h-5 ${textColors[type]} flex-shrink-0 mt-0.5"></i>
+                    <p class="text-sm text-slate-200 flex-1">${message}</p>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-slate-400 hover:text-white">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        // Editor
+        function initEditor() {
+            const textarea = document.getElementById('xmlEditor');
+            editor = CodeMirror.fromTextArea(textarea, {
+                mode: 'xml',
+                theme: 'material-darker',
+                lineNumbers: true,
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                indentUnit: 2,
+                tabSize: 2,
+                indentWithTabs: false,
+                lineWrapping: true,
+                gutters: ['CodeMirror-linenumbers']
+            });
+            
+            editor.setValue(`<config target="mon-routeur" host="192.168.1.1" os="ios" user="admin" password="password">
+  <!-- Ajoutez votre configuration NETCONF ici -->
+</config>`);
+            
+            editor.on('cursorActivity', () => {
+                const cursor = editor.getCursor();
+                document.getElementById('editorCursorPos').textContent = `Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
+                validateXml();
+            });
+            
+            editor.on('change', validateXml);
+        }
+
+        function validateXml() {
+            const content = editor.getValue();
+            const validationEl = document.getElementById('xmlValidation');
+            const messageEl = document.getElementById('validationMessage');
+            
+            if (!content.trim()) {
+                validationEl.className = 'bg-slate-800/50 rounded-lg border border-slate-700 p-3 flex items-center gap-3';
+                validationEl.querySelector('i').setAttribute('data-lucide', 'info');
+                validationEl.querySelector('i').className = 'w-5 h-5 text-slate-400';
+                messageEl.textContent = 'Entrez du contenu XML';
+                messageEl.className = 'text-sm text-slate-400';
+                lucide.createIcons();
+                return true;
+            }
+            
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(content, 'text/xml');
+                const error = doc.querySelector('parsererror');
+                
+                if (error) {
+                    throw new Error(error.textContent);
+                }
+                
+                validationEl.className = 'bg-green-500/10 rounded-lg border border-green-500/50 p-3 flex items-center gap-3';
+                validationEl.querySelector('i').setAttribute('data-lucide', 'check-circle');
+                validationEl.querySelector('i').className = 'w-5 h-5 text-green-500';
+                messageEl.textContent = 'XML valide';
+                messageEl.className = 'text-sm text-green-400';
+                lucide.createIcons();
+                return true;
+            } catch (e) {
+                validationEl.className = 'bg-red-500/10 rounded-lg border border-red-500/50 p-3 flex items-center gap-3';
+                validationEl.querySelector('i').setAttribute('data-lucide', 'x-circle');
+                validationEl.querySelector('i').className = 'w-5 h-5 text-red-500';
+                messageEl.textContent = `Erreur XML: ${e.message.substring(0, 50)}...`;
+                messageEl.className = 'text-sm text-red-400';
+                lucide.createIcons();
+                return false;
+            }
+        }
+
+        function loadTemplate() {
+            const templateKey = document.getElementById('templateSelect').value;
+            if (templateKey && templates[templateKey]) {
+                editor.setValue(templates[templateKey]);
+                document.getElementById('editorFileName').textContent = `${templateKey}.xml`;
+                showToast('Template chargé', 'success');
+            }
+        }
+
+        function saveTemplate() {
+            const name = prompt('Nom du template:');
+            if (name) {
+                localStorage.setItem(`template_${name}`, editor.getValue());
+                showToast(`Template "${name}" sauvegardé`, 'success');
+            }
+        }
+
+        // Equipment Management
+        function loadEquipment() {
+            const stored = localStorage.getItem('equipment');
+            equipment = stored ? JSON.parse(stored) : [];
+            renderEquipmentTable();
+            updateStats();
+            updateEquipmentStatusList();
+        }
+
+        function saveEquipmentData() {
+            localStorage.setItem('equipment', JSON.stringify(equipment));
+        }
+
+        function renderEquipmentTable() {
+            const tbody = document.getElementById('equipmentTableBody');
+            
+            if (equipment.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                            <i data-lucide="server-off" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                            <p>Aucun équipement configuré</p>
+                        </td>
+                    </tr>`;
+                lucide.createIcons();
+                return;
+            }
+            
+            tbody.innerHTML = equipment.map((e, i) => {
+                const isOnline = e.status === 'online';
+                return `
+                <tr class="hover:bg-slate-700/30 transition-colors">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 ${isOnline ? 'bg-green-500/20' : 'bg-slate-700'} rounded-lg flex items-center justify-center">
+                                <i data-lucide="server" class="w-4 h-4 ${isOnline ? 'text-green-400' : 'text-slate-400'}"></i>
+                            </div>
+                            <span class="font-medium">${e.name}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 font-mono text-sm text-slate-300">${e.ip}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 bg-slate-700 rounded text-xs uppercase">${e.type}</span>
+                        <span class="text-xs text-slate-500 ml-1">${e.os}</span>
+                    </td>
+                    <td class="px-4 py-3 font-mono text-sm text-slate-400">${e.port}</td>
+                    <td class="px-4 py-3">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 pulse-dot' : 'bg-slate-500'}"></span>
+                            <span class="${isOnline ? 'text-green-400' : 'text-slate-400'} text-sm">${isOnline ? 'En ligne' : 'Hors ligne'}</span>
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="testEquipmentConnectivity(${i})" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Tester la connexion">
+                                <i data-lucide="wifi" class="w-4 h-4 text-slate-400 hover:text-blue-400"></i>
+                            </button>
+                            <button onclick="editEquipment(${i})" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Modifier">
+                                <i data-lucide="pencil" class="w-4 h-4 text-slate-400 hover:text-amber-400"></i>
+                            </button>
+                            <button onclick="deleteEquipment(${i})" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Supprimer">
+                                <i data-lucide="trash-2" class="w-4 h-4 text-slate-400 hover:text-red-400"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function filterEquipment() {
+            const search = document.getElementById('equipmentSearch').value.toLowerCase();
+            const type = document.getElementById('equipmentFilterType').value;
+            const status = document.getElementById('equipmentFilterStatus').value;
+            
+            const filtered = equipment.filter(e => {
+                const matchSearch = e.name.toLowerCase().includes(search) || e.ip.includes(search);
+                const matchType = !type || e.type === type;
+                const matchStatus = !status || e.status === status;
+                return matchSearch && matchType && matchStatus;
+            });
+            
+            renderFilteredEquipmentTable(filtered);
+        }
+
+        function renderFilteredEquipmentTable(items) {
+            const tbody = document.getElementById('equipmentTableBody');
+            
+            if (items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                            <p>Aucun équipement ne correspond aux critères</p>
+                        </td>
+                    </tr>`;
+                lucide.createIcons();
+                return;
+            }
+            
+            tbody.innerHTML = items.map((e, idx) => {
+                const realIndex = equipment.findIndex(eq => eq.id === e.id);
+                const isOnline = e.status === 'online';
+                return `
+                <tr class="hover:bg-slate-700/30 transition-colors">
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 ${isOnline ? 'bg-green-500/20' : 'bg-slate-700'} rounded-lg flex items-center justify-center">
+                                <i data-lucide="server" class="w-4 h-4 ${isOnline ? 'text-green-400' : 'text-slate-400'}"></i>
+                            </div>
+                            <span class="font-medium">${e.name}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 font-mono text-sm text-slate-300">${e.ip}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 bg-slate-700 rounded text-xs uppercase">${e.type}</span>
+                        <span class="text-xs text-slate-500 ml-1">${e.os}</span>
+                    </td>
+                    <td class="px-4 py-3 font-mono text-sm text-slate-400">${e.port}</td>
+                    <td class="px-4 py-3">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 pulse-dot' : 'bg-slate-500'}"></span>
+                            <span class="${isOnline ? 'text-green-400' : 'text-slate-400'} text-sm">${isOnline ? 'En ligne' : 'Hors ligne'}</span>
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="testEquipmentConnectivity(${realIndex})" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Tester la connexion">
+                                <i data-lucide="wifi" class="w-4 h-4 text-slate-400 hover:text-blue-400"></i>
+                            </button>
+                            <button onclick="editEquipment(${realIndex})" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Modifier">
+                                <i data-lucide="pencil" class="w-4 h-4 text-slate-400 hover:text-amber-400"></i>
+                            </button>
+                            <button onclick="deleteEquipment(${realIndex})" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Supprimer">
+                                <i data-lucide="trash-2" class="w-4 h-4 text-slate-400 hover:text-red-400"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function openAddEquipmentModal() {
+            document.getElementById('modalTitle').textContent = 'Ajouter un équipement';
+            document.getElementById('equipmentForm').reset();
+            document.getElementById('equipmentId').value = '';
+            document.getElementById('equipPort').value = '830';
+            document.getElementById('equipmentModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeEquipmentModal() {
+            document.getElementById('equipmentModal').classList.add('hidden');
+        }
+
+        function editEquipment(index) {
+            const e = equipment[index];
+            document.getElementById('modalTitle').textContent = 'Modifier l\'équipement';
+            document.getElementById('equipmentId').value = index;
+            document.getElementById('equipName').value = e.name;
+            document.getElementById('equipIp').value = e.ip;
+            document.getElementById('equipType').value = e.type;
+            document.getElementById('equipOs').value = e.os;
+            document.getElementById('equipPort').value = e.port;
+            document.getElementById('equipUser').value = e.username;
+            document.getElementById('equipPass').value = e.password;
+            document.getElementById('equipmentModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        async function saveEquipment() {
+            const id = document.getElementById('equipmentId').value;
+            const testConn = document.getElementById('testConnection').checked;
+            
+            const equipData = {
+                id: id ? equipment[id].id : Date.now().toString(),
+                name: document.getElementById('equipName').value,
+                ip: document.getElementById('equipIp').value,
+                type: document.getElementById('equipType').value,
+                os: document.getElementById('equipOs').value,
+                port: document.getElementById('equipPort').value,
+                username: document.getElementById('equipUser').value,
+                password: document.getElementById('equipPass').value,
+                status: 'offline'
+            };
+            
+            if (id) {
+                equipment[id] = equipData;
+            } else {
+                equipment.push(equipData);
+            }
+            
+            saveEquipmentData();
+            renderEquipmentTable();
+            updateStats();
+            updateEquipmentStatusList();
+            closeEquipmentModal();
+            showToast(id ? 'Équipement modifié' : 'Équipement ajouté', 'success');
+            
+            if (testConn) {
+                await testEquipmentConnectivity(equipment.findIndex(e => e.id === equipData.id));
+            }
+        }
+
+        function deleteEquipment(index) {
+            if (confirm(`Supprimer "${equipment[index].name}" ?`)) {
+                equipment.splice(index, 1);
+                saveEquipmentData();
+                renderEquipmentTable();
+                updateStats();
+                updateEquipmentStatusList();
+                showToast('Équipement supprimé', 'success');
+            }
+        }
+
+        async function testEquipmentConnectivity(index) {
+            const e = equipment[index];
+            showToast(`Test de connexion à ${e.name}...`, 'info');
+            
+            // Simulate ping test
+            await new Promise(r => setTimeout(r, 1500));
+            
+            // Simple simulation: consider online if IP starts with 192 or 10
+            const isOnline = e.ip.startsWith('192.') || e.ip.startsWith('10.') || Math.random() > 0.3;
+            equipment[index].status = isOnline ? 'online' : 'offline';
+            saveEquipmentData();
+            renderEquipmentTable();
+            updateStats();
+            updateEquipmentStatusList();
+            
+            showToast(`${e.name}: ${isOnline ? 'Accessible' : 'Inaccessible'}`, isOnline ? 'success' : 'warning');
+        }
+
+        function refreshEquipmentStatus() {
+            equipment.forEach((_, i) => testEquipmentConnectivity(i));
+        }
+
+        function updateStats() {
+            document.getElementById('stat-total').textContent = equipment.length;
+            document.getElementById('stat-online').textContent = equipment.filter(e => e.status === 'online').length;
+            document.getElementById('stat-success').textContent = history.filter(h => h.status === 'success').length;
+            document.getElementById('stat-failed').textContent = history.filter(h => h.status === 'failed').length;
+        }
+
+        function updateEquipmentStatusList() {
+            const list = document.getElementById('equipment-status-list');
+            if (equipment.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center text-slate-500 py-8">
+                        <i data-lucide="server-off" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                        <p>Aucun équipement</p>
+                    </div>`;
+            } else {
+                list.innerHTML = equipment.slice(0, 5).map(e => `
+                    <div class="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 ${e.status === 'online' ? 'bg-green-500/20' : 'bg-slate-700'} rounded-lg flex items-center justify-center">
+                                <i data-lucide="server" class="w-5 h-5 ${e.status === 'online' ? 'text-green-400' : 'text-slate-400'}"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white">${e.name}</p>
+                                <p class="text-xs text-slate-400">${e.ip}</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 text-xs rounded ${e.status === 'online' ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-400'}">
+                            ${e.status === 'online' ? 'En ligne' : 'Hors ligne'}
+                        </span>
+                    </div>
+                `).join('');
+            }
+            lucide.createIcons();
+        }
+
+        // Deployment
+        function refreshEquipmentForDeploy() {
+            const list = document.getElementById('deployEquipmentList');
+            if (equipment.length === 0) {
+                list.innerHTML = `<div class="text-center text-slate-500 py-4"><p>Aucun équipement disponible</p></div>`;
+                return;
+            }
+            
+            list.innerHTML = equipment.map((e, i) => `
+                <label class="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg cursor-pointer hover:bg-slate-700/50 transition-colors">
+                    <input type="checkbox" value="${i}" class="deploy-equip-checkbox w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500" onchange="updateDeployButton()">
+                    <div class="flex-1">
+                        <p class="font-medium text-white">${e.name}</p>
+                        <p class="text-xs text-slate-400">${e.ip} - ${e.type} ${e.os}</p>
+                    </div>
+                    <span class="w-2 h-2 rounded-full ${e.status === 'online' ? 'bg-green-500' : 'bg-slate-500'}"></span>
+                </label>
+            `).join('');
+            
+            // Load saved templates
+            const savedSelect = document.getElementById('savedTemplateSelect');
+            savedSelect.innerHTML = '<option value="">-- Choisir une configuration --</option>';
+            Object.keys(localStorage).filter(k => k.startsWith('history_')).forEach(k => {
+                const h = JSON.parse(localStorage.getItem(k));
+                savedSelect.innerHTML += `<option value="${k}">${h.name} (${new Date(h.date).toLocaleDateString('fr-FR')})</option>`;
+            });
+        }
+
+        function toggleAllEquipments() {
+            const checked = document.getElementById('selectAllEquipments').checked;
+            document.querySelectorAll('.deploy-equip-checkbox').forEach(cb => cb.checked = checked);
+            updateDeployButton();
+        }
+
+        function updateDeployButton() {
+            selectedDeployEquipments = Array.from(document.querySelectorAll('.deploy-equip-checkbox:checked')).map(cb => parseInt(cb.value));
+            const deployBtn = document.getElementById('deployButton');
+            deployBtn.disabled = selectedDeployEquipments.length === 0;
+        }
+
+        function loadSavedTemplate() {
+            const key = document.getElementById('savedTemplateSelect').value;
+            if (key) {
+                const h = JSON.parse(localStorage.getItem(key));
+                document.getElementById('quickXmlInput').value = h.xml;
+            }
+        }
+
+        function startDeployment() {
+            if (selectedDeployEquipments.length === 0) {
+                showToast('Sélectionnez au moins un équipement', 'warning');
+                return;
+            }
+            
+            const xmlContent = document.getElementById('quickXmlInput').value.trim();
+            if (!xmlContent) {
+                showToast('Entrez une configuration XML', 'warning');
+                return;
+            }
+            
+            // Validate XML
+            try {
+                const parser = new DOMParser();
+                parser.parseFromString(xmlContent, 'text/xml');
+            } catch (e) {
+                showToast('Configuration XML invalide', 'error');
+                return;
+            }
+            
+            // Show confirmation
+            const targetList = document.getElementById('confirmTargetList');
+            targetList.innerHTML = selectedDeployEquipments.map(i => `<div class="text-slate-300">• ${equipment[i].name} (${equipment[i].ip})</div>`).join('');
+            document.getElementById('confirmModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+        }
+
+        async function confirmDeployment() {
+            closeConfirmModal();
+            
+            const xmlContent = document.getElementById('quickXmlInput').value;
+            const targets = selectedDeployEquipments.map(i => equipment[i]);
+            
+            // Show progress
+            document.getElementById('deploymentProgress').classList.remove('hidden');
+            const resultsContainer = document.getElementById('deploymentResults');
+            resultsContainer.innerHTML = '';
+            
+            const deployment = {
+                id: Date.now().toString(),
+                name: `Déploiement ${new Date().toLocaleString('fr-FR')}`,
+                date: new Date().toISOString(),
+                xml: xmlContent,
+                targets: targets.map(t => t.name),
+                results: []
+            };
+            
+            for (let i = 0; i < targets.length; i++) {
+                const target = targets[i];
+                const progress = Math.round(((i + 0.5) / targets.length) * 100);
+                
+                document.getElementById('deployProgressPercent').textContent = `${progress}%`;
+                document.getElementById('deployProgressBar').style.width = `${progress}%`;
+                document.getElementById('deployProgressMessage').textContent = `Connexion à ${target.name}...`;
+                
+                // Add result card
+                const resultCard = document.createElement('div');
+                resultCard.className = 'bg-slate-800/50 rounded-xl border border-slate-700 p-4';
+                resultCard.id = `result-${i}`;
+                resultCard.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-slate-700 rounded-lg flex items-center justify-center" id="result-icon-${i}">
+                                <i data-lucide="loader-2" class="w-5 h-5 text-blue-400 animate-spin"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-white">${target.name}</p>
+                                <p class="text-xs text-slate-400">${target.ip}</p>
+                            </div>
+                        </div>
+                        <span class="text-blue-400 text-sm" id="result-status-${i}">En cours...</span>
+                    </div>
+                `;
+                resultsContainer.appendChild(resultCard);
+                lucide.createIcons();
+                
+                // Simulate deployment
+                await new Promise(r => setTimeout(r, 1500));
+                
+                // Determine success
+                const isSuccess = target.ip.startsWith('192.') || target.ip.startsWith('10.') || Math.random() > 0.2;
+                deployment.results.push({ target: target.name, status: isSuccess ? 'success' : 'failed' });
+                
+                const iconEl = document.getElementById(`result-icon-${i}`);
+                const statusEl = document.getElementById(`result-status-${i}`);
+                
+                if (isSuccess) {
+                    iconEl.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>';
+                    iconEl.className = 'w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center';
+                    statusEl.innerHTML = '<span class="text-green-400">Succès</span>';
+                    resultCard.classList.add('border-green-500/50');
+                } else {
+                    iconEl.innerHTML = '<i data-lucide="x-circle" class="w-5 h-5 text-red-400"></i>';
+                    iconEl.className = 'w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center';
+                    statusEl.innerHTML = '<span class="text-red-400">Échec</span>';
+                    resultCard.classList.add('border-red-500/50');
+                }
+                lucide.createIcons();
+            }
+            
+            // Complete
+            const successCount = deployment.results.filter(r => r.status === 'success').length;
+            document.getElementById('deployProgressPercent').textContent = '100%';
+            document.getElementById('deployProgressBar').style.width = '100%';
+            document.getElementById('deployProgressMessage').textContent = `Terminé: ${successCount}/${targets.length} réussis`;
+            
+            // Save to history
+            deployment.status = successCount === targets.length ? 'success' : (successCount > 0 ? 'partial' : 'failed');
+            history.unshift(deployment);
+            localStorage.setItem(`history_${deployment.id}`, JSON.stringify(deployment));
+            saveHistoryList();
+            
+            updateStats();
+            showToast(`Déploiement terminé: ${successCount}/${targets.length} réussis`, successCount > 0 ? 'success' : 'error');
+            
+            // Reset
+            setTimeout(() => {
+                document.getElementById('deploymentProgress').classList.add('hidden');
+                selectedDeployEquipments = [];
+                document.querySelectorAll('.deploy-equip-checkbox').forEach(cb => cb.checked = false);
+                document.getElementById('selectAllEquipments').checked = false;
+                updateDeployButton();
+            }, 3000);
+        }
+
+        // History
+        function saveHistoryList() {
+            const historyIds = history.map(h => h.id);
+            localStorage.setItem('historyIds', JSON.stringify(historyIds));
+        }
+
+        function loadHistory() {
+            const historyIds = JSON.parse(localStorage.getItem('historyIds') || '[]');
+            history = historyIds.map(id => {
+                const stored = localStorage.getItem(`history_${id}`);
+                return stored ? JSON.parse(stored) : null;
+            }).filter(h => h);
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                list.innerHTML = `
+                    <div class="bg-slate-800/50 rounded-xl border border-slate-700 p-8 text-center text-slate-500">
+                        <i data-lucide="history" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+                        <p class="text-lg">Aucun déploiement dans l'historique</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+            
+            list.innerHTML = history.map(h => {
+                const successCount = h.results.filter(r => r.status === 'success').length;
+                const total = h.results.length;
+                const statusClass = h.status === 'success' ? 'bg-green-500/20 text-green-400' : h.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400';
+                const statusText = h.status === 'success' ? 'Succès' : h.status === 'failed' ? 'Échec' : 'Partiel';
+                
+                return `
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700 p-5 card-hover transition-all cursor-pointer" onclick="showHistoryDetail('${h.id}')">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <h4 class="font-medium text-white">${h.name}</h4>
+                            <p class="text-sm text-slate-400">${new Date(h.date).toLocaleString('fr-FR')}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-lg text-sm font-medium ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="flex items-center gap-4 text-sm text-slate-400">
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="server" class="w-4 h-4"></i>
+                            ${total} équipement${total > 1 ? 's' : ''}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            ${successCount} réussi${successCount > 1 ? 's' : ''}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
+                            ${total - successCount} échoué${total - successCount > 1 ? 's' : ''}
+                        </span>
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function filterHistory() {
+            const search = document.getElementById('historySearch').value.toLowerCase();
+            const status = document.getElementById('historyFilterStatus').value;
+            
+            const filtered = history.filter(h => {
+                const matchSearch = h.name.toLowerCase().includes(search) || h.targets.some(t => t.toLowerCase().includes(search));
+                const matchStatus = !status || h.status === status;
+                return matchSearch && matchStatus;
+            });
+            
+            renderFilteredHistory(filtered);
+        }
+
+        function renderFilteredHistory(items) {
+            const list = document.getElementById('historyList');
+            
+            if (items.length === 0) {
+                list.innerHTML = `
+                    <div class="bg-slate-800/50 rounded-xl border border-slate-700 p-8 text-center text-slate-500">
+                        <p>Aucun déploiement ne correspond aux critères</p>
+                    </div>`;
+                return;
+            }
+            
+            list.innerHTML = items.map(h => {
+                const successCount = h.results.filter(r => r.status === 'success').length;
+                const total = h.results.length;
+                const statusClass = h.status === 'success' ? 'bg-green-500/20 text-green-400' : h.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400';
+                const statusText = h.status === 'success' ? 'Succès' : h.status === 'failed' ? 'Échec' : 'Partiel';
+                
+                return `
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700 p-5 card-hover transition-all cursor-pointer" onclick="showHistoryDetail('${h.id}')">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <h4 class="font-medium text-white">${h.name}</h4>
+                            <p class="text-sm text-slate-400">${new Date(h.date).toLocaleString('fr-FR')}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-lg text-sm font-medium ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="flex items-center gap-4 text-sm text-slate-400">
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="server" class="w-4 h-4"></i>
+                            ${total} équipement${total > 1 ? 's' : ''}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            ${successCount} réussi${successCount > 1 ? 's' : ''}
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="x" class="w-4 h-4 text-red-400"></i>
+                            ${total - successCount} échoué${total - successCount > 1 ? 's' : ''}
+                        </span>
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function showHistoryDetail(id) {
+            currentHistoryItem = history.find(h => h.id === id);
+            if (!currentHistoryItem) return;
+            
+            const h = currentHistoryItem;
+            document.getElementById('historyDetailTitle').textContent = h.name;
+            document.getElementById('historyDetailContent').innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-700/30 rounded-lg p-4">
+                            <p class="text-xs text-slate-400 mb-1">Date</p>
+                            <p class="text-white">${new Date(h.date).toLocaleString('fr-FR')}</p>
+                        </div>
+                        <div class="bg-slate-700/30 rounded-lg p-4">
+                            <p class="text-xs text-slate-400 mb-1">Statut</p>
+                            <p class="${h.status === 'success' ? 'text-green-400' : h.status === 'failed' ? 'text-red-400' : 'text-amber-400'}">${h.status === 'success' ? 'Succès' : h.status === 'failed' ? 'Échec' : 'Partiel'}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-slate-400 mb-2">Résultats par équipement</p>
+                        <div class="space-y-2">
+                            ${h.results.map(r => `
+                                <div class="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                                    <span class="text-white">${r.target}</span>
+                                    <span class="${r.status === 'success' ? 'text-green-400' : 'text-red-400'} flex items-center gap-1">
+                                        <i data-lucide="${r.status === 'success' ? 'check-circle' : 'x-circle'}" class="w-4 h-4"></i>
+                                        ${r.status === 'success' ? 'Succès' : 'Échec'}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-slate-400 mb-2">Configuration déployée</p>
+                        <div class="bg-slate-700/30 rounded-lg p-3 font-mono text-xs overflow-auto max-h-48">
+                            <pre class="text-slate-300 whitespace-pre-wrap">${h.xml}</pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('historyDetailModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeHistoryDetailModal() {
+            document.getElementById('historyDetailModal').classList.add('hidden');
+        }
+
+        function redepolyFromHistory() {
+            if (currentHistoryItem) {
+                document.getElementById('quickXmlInput').value = currentHistoryItem.xml;
+                closeHistoryDetailModal();
+                showSection('deploy');
+                showToast('Configuration chargée depuis l\'historique', 'info');
+            }
+        }
+
+        // Update recent deployments on dashboard
+        function updateRecentDeployments() {
+            const container = document.getElementById('recent-deployments');
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-500 py-8">
+                        <i data-lucide="package-x" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                        <p>Aucun déploiement</p>
+                    </div>`;
+            } else {
+                container.innerHTML = history.slice(0, 5).map(h => {
+                    const statusClass = h.status === 'success' ? 'bg-green-500/20 text-green-400' : h.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400';
+                    return `
+                    <div class="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg mb-2">
+                        <div>
+                            <p class="font-medium text-white text-sm">${h.name}</p>
+                            <p class="text-xs text-slate-400">${new Date(h.date).toLocaleString('fr-FR')}</p>
+                        </div>
+                        <span class="px-2 py-1 text-xs rounded ${statusClass}">${h.status === 'success' ? 'OK' : h.status === 'failed' ? 'Erreur' : 'Partiel'}</span>
+                    </div>`;
+                }).join('');
+            }
+            lucide.createIcons();
+        }
+
+        // Call on load
+        updateRecentDeployments();
+
+        // Connection indicator
+        setInterval(() => {
+            const indicator = document.getElementById('connectionIndicator');
+            if (equipment.some(e => e.status === 'online')) {
+                indicator.innerHTML = `<span class="w-2 h-2 bg-green-500 rounded-full pulse-dot"></span><span class="text-sm text-green-400">Connecté</span>`;
+            } else {
+                indicator.innerHTML = `<span class="w-2 h-2 bg-slate-500 rounded-full"></span><span class="text-sm text-slate-400">En attente</span>`;
+            }
+            lucide.createIcons();
+            updateRecentDeployments();
+        }, 5000);
+    </script>
+</body>
+</html>

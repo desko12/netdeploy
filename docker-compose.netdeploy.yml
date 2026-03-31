@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  netdeploy-frontend:
+    build:
+      context: ..
+      dockerfile: netdeploy_backend/Dockerfile.frontend
+    container_name: netdeploy-frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ../index.html:/usr/share/nginx/html/index.html
+    depends_on:
+      - netdeploy-backend
+    networks:
+      - netdeploy
+
+  netdeploy-backend:
+    build:
+      context: ./netdeploy_backend
+      dockerfile: Dockerfile
+    container_name: netdeploy-backend
+    ports:
+      - "8001:8001"
+    networks:
+      - netdeploy
+
+networks:
+  netdeploy:
+    driver: bridge

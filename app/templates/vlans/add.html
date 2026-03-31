@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Ajouter un VLAN - NETCONF Router Manager{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <a href="/routers/{{ router_id }}" class="text-indigo-600 hover:text-indigo-800 mb-4 inline-block">
+        <i class="fas fa-arrow-left mr-2"></i>Retour au routeur
+    </a>
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">
+        <i class="fas fa-plus-circle mr-3 text-indigo-600"></i>Ajouter un VLAN
+    </h1>
+</div>
+
+<div class="max-w-2xl">
+    <div class="bg-white rounded-lg shadow p-6">
+        <form id="vlan-form" class="space-y-6">
+            <input type="hidden" name="router_id" value="{{ router_id }}">
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label for="vlan_id" class="block text-sm font-medium text-gray-700 mb-2">
+                        VLAN ID <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" id="vlan_id" name="vlan_id" required
+                        min="1" max="4094" placeholder="ex: 100"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-xs text-gray-500 mt-1">Plage: 1-4094</p>
+                </div>
+
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Nom du VLAN <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="name" name="name" required
+                        placeholder="ex: CLIENT-FINANCE"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                </label>
+                <textarea id="description" name="description" rows="2"
+                    placeholder="Description du VLAN..."
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label for="ip_address" class="block text-sm font-medium text-gray-700 mb-2">
+                        Adresse IP (optionnel)
+                    </label>
+                    <input type="text" id="ip_address" name="ip_address"
+                        placeholder="ex: 192.168.100.1"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div>
+                    <label for="subnet_mask" class="block text-sm font-medium text-gray-700 mb-2">
+                        Masque sous-réseau
+                    </label>
+                    <input type="text" id="subnet_mask" name="subnet_mask"
+                        placeholder="ex: 255.255.255.0"
+                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                    Statut
+                </label>
+                <select id="status" name="status"
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="active">Actif</option>
+                    <option value="suspend">Suspendu</option>
+                </select>
+            </div>
+
+            <div class="flex justify-end space-x-4 pt-4 border-t">
+                <a href="/routers/{{ router_id }}" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    Annuler
+                </a>
+                <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-save mr-2"></i>Créer le VLAN
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('vlan-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+        const response = await fetch('/api/routers/' + data.router_id + '/vlans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showToast('VLAN créé avec succès', 'success');
+            
+            // Apply to router
+            await fetch('/api/vlans/' + result.id + '/apply', { method: 'POST' });
+            
+            setTimeout(() => window.location.href = '/routers/' + data.router_id, 1000);
+        } else {
+            const error = await response.json();
+            showToast(error.detail || 'Erreur lors de la création', 'error');
+        }
+    } catch (error) {
+        showToast('Erreur: ' + error.message, 'error');
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    network_mode: host
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=true
+    restart: unless-stopped

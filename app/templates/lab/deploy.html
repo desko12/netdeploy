@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Déployer un Lab - NETCONF Router Manager{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">
+        <i class="fas fa-bolt mr-3 text-indigo-600"></i>Déploiement de Lab (fichier déclaratif)
+    </h1>
+    <p class="text-gray-600">
+        Déposez un XML déclaratif: l'application génère et pousse la config via NETCONF, sans exposer la complexité.
+    </p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">
+            <i class="fas fa-file-upload mr-2 text-indigo-600"></i>Importer le fichier XML
+        </h2>
+
+        <div class="space-y-4">
+            <div>
+                <label for="lab-file" class="block text-sm font-medium text-gray-700 mb-2">
+                    Fichier XML
+                </label>
+                <input
+                    id="lab-file"
+                    type="file"
+                    accept=".xml,text/xml"
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p class="text-sm text-gray-500 mt-2">
+                    Optionnel si vous collez directement dans le champ ci-dessous.
+                </p>
+            </div>
+
+            <div>
+                <label for="lab-xml" class="block text-sm font-medium text-gray-700 mb-2">
+                    Contenu XML
+                </label>
+                <textarea
+                    id="lab-xml"
+                    name="lab-xml"
+                    rows="18"
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
+                >{{ example_xml }}</textarea>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t">
+                <label class="flex items-center">
+                    <input id="dry-run" type="checkbox" class="w-5 h-5 text-indigo-600" />
+                    <span class="ml-2 text-gray-700 text-sm">Dry-run (valider sans appliquer)</span>
+                </label>
+
+                <div class="flex items-center gap-2">
+                    <button id="deploy-btn" type="button" onclick="deployLab()" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                        <i class="fas fa-play mr-2"></i>Déployer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">
+            <i class="fas fa-list-check mr-2 text-indigo-600"></i>Résultats
+        </h2>
+
+        <div id="deploy-results" class="text-sm text-gray-700">
+            <p class="text-gray-500">Aucun déploiement lancé.</p>
+        </div>
+
+        <div class="mt-6">
+            <h3 class="text-sm font-semibold mb-2 text-gray-800">
+                <i class="fas fa-eye mr-2 text-gray-500"></i>Exemple de XML
+            </h3>
+            <details class="bg-gray-50 border rounded-lg p-4">
+                <summary class="cursor-pointer text-sm text-indigo-700 font-medium mb-2">Voir un exemple (inter-VLAN routing)</summary>
+                <pre class="whitespace-pre-wrap font-mono text-xs text-gray-800">{{ example_xml }}</pre>
+            </details>
+        </div>
+    </div>
+</div>
+
+<script>
+function escapeHtml(str) {
+    return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+async function deployLab() {
+    const deployBtn = document.getElementById('deploy-btn');
+    deployBtn.disabled = true;
+    deployBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Déploiement...';
+
+    try {
+        const labXmlTextArea = document.getElementById('lab-xml');
+        const fileInput = document.getElementById('lab-file');
+        let xmlText = labXmlTextArea.value || '';
+
+        if (fileInput.files && fileInput.files.length > 0) {
+            xmlText = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(new Error('Impossible de lire le fichier.'));
+                reader.readAsText(fileInput.files[0]);
+            });
+            labXmlTextArea.value = xmlText;
+        }
+
+        if (!xmlText.trim()) {
+            showToast('Veuillez fournir du XML (fichier ou champ texte).', 'error');
+            return;
+        }
+
+        const dryRun = document.getElementById('dry-run').checked;
+
+        const payload = {
+            lab_xml: xmlText,
+            dry_run: dryRun,
+            ping_targets: []
+        };
+
+        const res = await fetch('/api/lab/deploy', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            showToast(data.detail || 'Erreur lors du déploiement', 'error');
+        } else {
+            showToast(data.message || (data.success ? 'Déploiement OK' : 'Déploiement avec erreurs'), data.success ? 'success' : 'error');
+        }
+
+        const resultsEl = document.getElementById('deploy-results');
+        if (data.routers && data.routers.length) {
+            resultsEl.innerHTML = data.routers.map(r => {
+                const statusColor = r.success ? 'text-green-700' : 'text-red-700';
+                return `<div class="p-3 mb-3 rounded border ${r.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}">
+                    <div class="font-semibold ${statusColor}">Routeur: ${escapeHtml(r.router_name)}</div>
+                    <div class="text-sm text-gray-700">Succès: ${r.success ? 'oui' : 'non'} | Appliqué: ${r.applied}</div>
+                    ${r.error ? `<div class="text-sm text-red-700 mt-2">${escapeHtml(r.error)}</div>` : ''}
+                    ${r.log_id ? `<div class="text-xs text-gray-500 mt-2">Log ID: ${r.log_id}</div>` : ''}
+                </div>`;
+            }).join('');
+        } else {
+            resultsEl.innerHTML = '<p class="text-gray-500">Aucun résultat.</p>';
+        }
+
+        if (data.pings && data.pings.length) {
+            resultsEl.innerHTML += `<div class="mt-6 pt-4 border-t">
+                <h4 class="text-sm font-semibold text-gray-800 mb-2">Ping</h4>
+                ${data.pings.map(p => {
+                    const ok = p.success;
+                    return `<div class="flex justify-between items-center text-sm p-2 rounded border ${ok ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'} mb-2">
+                        <span class="${ok ? 'text-green-700' : 'text-red-700'}">${escapeHtml(p.ip_address)}</span>
+                        <span class="font-medium">${ok ? 'OK' : 'FAIL'}</span>
+                    </div>`;
+                }).join('')}
+            </div>`;
+        }
+    } catch (e) {
+        showToast('Erreur: ' + e.message, 'error');
+    } finally {
+        deployBtn.disabled = false;
+        deployBtn.innerHTML = '<i class="fas fa-play mr-2"></i>Déployer';
+    }
+}
+</script>
+{% endblock %}
+
