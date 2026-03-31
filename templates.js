@@ -561,6 +561,305 @@ const templatesDB = [
     <contact>admin@example.com</contact>
   </snmp>
 </config>`
+    },
+
+    // ==================== LABS PRÉ-CONFIGURÉS ====================
+    {
+        id: 'lab_soho',
+        name: 'Lab - SOHO (Petit Bureau)',
+        vendor: 'lab',
+        category: 'lab',
+        description: '1 routeur + 2 switches, 3 VLANs. Idéal pour débuter.',
+        icon: 'home',
+        xml: `<config target="SOHO-Router" host="192.168.1.1" os="ios" user="admin" password="admin123">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>DATA</name></vlan>
+  <vlan id="30"><name>GUEST</name></vlan>
+  <interface name="GigabitEthernet0/0">
+    <description>WAN - ISP</description>
+    <ip>dhcp</ip>
+  </interface>
+  <interface name="GigabitEthernet0/1">
+    <description>LAN</description>
+    <ip>192.168.10.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <ospf process-id="1" router-id="192.168.10.1">
+    <area id="0">
+      <network>192.168.10.0</network>
+      <wildcard>0.0.0.255</wildcard>
+    </area>
+  </ospf>
+</config>
+<config target="Access-SW-01" host="192.168.1.10" os="ios" user="admin" password="admin123">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>DATA</name></vlan>
+  <vlan id="30"><name>GUEST</name></vlan>
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink to Router</description>
+    <allowed-vlans>10,20,30</allowed-vlans>
+  </interface>
+</config>`
+    },
+    {
+        id: 'lab_datacenter',
+        name: 'Lab - Datacenter',
+        vendor: 'lab',
+        category: 'lab',
+        description: 'Core switches avec EtherChannel et HSRP. Redondance complète.',
+        icon: 'database',
+        xml: `<config target="Core-SW-01" host="10.0.0.1" os="ios" user="admin" password="dc-admin">
+  <vlan id="100"><name>SRV_PROD</name></vlan>
+  <vlan id="200"><name>SRV_DEV</name></vlan>
+  <vlan id="999"><name>NATIVE</name></vlan>
+  <interface name="Vlan100">
+    <description>SVI Production</description>
+    <ip>10.100.0.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <interface name="Vlan200">
+    <description>SVI Development</description>
+    <ip>10.200.0.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <interface name="Port-channel1">
+    <description>EtherChannel to Access</description>
+    <mode>layer3</mode>
+    <ip>10.10.10.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <bgp as="65100">
+    <router-id>10.0.0.1</router-id>
+    <neighbor ip="10.0.0.2" remote-as="65100">
+      <description>iBGP Peer</description>
+    </neighbor>
+  </bgp>
+</config>
+<config target="Core-SW-02" host="10.0.0.2" os="ios" user="admin" password="dc-admin">
+  <vlan id="100"><name>SRV_PROD</name></vlan>
+  <vlan id="200"><name>SRV_DEV</name></vlan>
+  <vlan id="999"><name>NATIVE</name></vlan>
+  <interface name="Vlan100">
+    <ip>10.100.0.2</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <interface name="Vlan200">
+    <ip>10.200.0.2</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <interface name="Port-channel1">
+    <description>EtherChannel to Access</description>
+    <mode>layer3</mode>
+    <ip>10.10.20.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <hsrp>
+    <group>100</group>
+    <priority>110</priority>
+    <ip>10.100.0.254</ip>
+    <preempt/>
+  </hsrp>
+  <bgp as="65100">
+    <router-id>10.0.0.2</router-id>
+    <neighbor ip="10.0.0.1" remote-as="65100">
+      <description>iBGP Peer</description>
+    </neighbor>
+  </bgp>
+</config>
+<config target="Access-SW-01" host="10.10.10.2" os="ios" user="admin" password="dc-admin">
+  <vlan id="100"><name>SRV_PROD</name></vlan>
+  <vlan id="200"><name>SRV_DEV</name></vlan>
+  <interface name="GigabitEthernet0/1" channel-group="1" mode="active"/>
+  <interface name="GigabitEthernet0/2" channel-group="1" mode="active"/>
+  <interface name="GigabitEthernet0/3" mode="access">
+    <description>Server Production</description>
+    <vlan>100</vlan>
+    <spanning-tree portfast/>
+  </interface>
+</config>`
+    },
+    {
+        id: 'lab_campus',
+        name: 'Lab - Campus',
+        vendor: 'lab',
+        category: 'lab',
+        description: 'Campus multi-bâtiment avec distribution redondante.',
+        icon: 'building',
+        xml: `<config target="Campus-Core" host="10.0.0.1" os="ios" user="admin" password="campus">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>STAFF</name></vlan>
+  <vlan id="30"><name>STUDENTS</name></vlan>
+  <vlan id="40"><name>WIFI</name></vlan>
+  <vlan id="50"><name>SECURITY</name></vlan>
+  <interface name="GigabitEthernet0/0">
+    <description>WAN - ISP</description>
+    <ip>203.0.113.1</ip>
+    <mask>255.255.255.252</mask>
+  </interface>
+  <ospf process-id="1" router-id="10.0.0.1">
+    <area id="0">
+      <network>10.0.0.0</network>
+      <wildcard>0.0.255.255</wildcard>
+    </area>
+  </ospf>
+</config>
+<config target="Dist-A-01" host="10.10.1.1" os="ios" user="admin" password="campus">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>STAFF</name></vlan>
+  <vlan id="30"><name>STUDENTS</name></vlan>
+  <vlan id="40"><name>WIFI</name></vlan>
+  <vlan id="50"><name>SECURITY</name></vlan>
+  <interface name="Vlan10">
+    <ip>10.10.1.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink Core</description>
+    <allowed-vlans>10,20,30,40,50</allowed-vlans>
+  </interface>
+  <interface name="GigabitEthernet0/2" mode="trunk">
+    <description>Backup Uplink</description>
+    <allowed-vlans>10,20,30,40,50</allowed-vlans>
+  </interface>
+</config>
+<config target="Dist-B-01" host="10.10.2.1" os="ios" user="admin" password="campus">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>STAFF</name></vlan>
+  <vlan id="30"><name>STUDENTS</name></vlan>
+  <vlan id="40"><name>WIFI</name></vlan>
+  <vlan id="50"><name>SECURITY</name></vlan>
+  <interface name="Vlan10">
+    <ip>10.10.2.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink Core</description>
+    <allowed-vlans>10,20,30,40,50</allowed-vlans>
+  </interface>
+</config>`
+    },
+    {
+        id: 'lab_wan_l3vpn',
+        name: 'Lab - WAN L3VPN',
+        vendor: 'lab',
+        category: 'lab',
+        description: 'Multi-sites avec BGP. Paris, Lyon, Marseille.',
+        icon: 'globe',
+        xml: `<config target="PE-Paris" host="10.0.1.1" os="ios" user="admin" password="wan123">
+  <interface name="GigabitEthernet0/0">
+    <description>WAN</description>
+    <ip>10.0.1.1</ip>
+    <mask>255.255.255.252</mask>
+  </interface>
+  <interface name="Loopback0">
+    <ip>1.1.1.1</ip>
+    <mask>255.255.255.255</mask>
+  </interface>
+  <bgp as="65101">
+    <router-id>1.1.1.1</router-id>
+    <neighbor ip="10.0.1.2" remote-as="65000">
+      <description>ISP RR</description>
+    </neighbor>
+  </bgp>
+</config>
+<config target="PE-Lyon" host="10.0.2.1" os="ios" user="admin" password="wan123">
+  <interface name="GigabitEthernet0/0">
+    <description>WAN</description>
+    <ip>10.0.2.1</ip>
+    <mask>255.255.255.252</mask>
+  </interface>
+  <interface name="Loopback0">
+    <ip>2.2.2.2</ip>
+    <mask>255.255.255.255</mask>
+  </interface>
+  <bgp as="65102">
+    <router-id>2.2.2.2</router-id>
+    <neighbor ip="10.0.2.2" remote-as="65000">
+      <description>ISP RR</description>
+    </neighbor>
+  </bgp>
+</config>
+<config target="PE-Marseille" host="10.0.3.1" os="ios" user="admin" password="wan123">
+  <interface name="GigabitEthernet0/0">
+    <description>WAN</description>
+    <ip>10.0.3.1</ip>
+    <mask>255.255.255.252</mask>
+  </interface>
+  <interface name="Loopback0">
+    <ip>3.3.3.3</ip>
+    <mask>255.255.255.255</mask>
+  </interface>
+  <bgp as="65103">
+    <router-id>3.3.3.3</router-id>
+    <neighbor ip="10.0.3.2" remote-as="65000">
+      <description>ISP RR</description>
+    </neighbor>
+  </bgp>
+</config>
+<config target="CE-Paris" host="192.168.100.1" os="ios" user="admin" password="wan123">
+  <interface name="GigabitEthernet0/0">
+    <description>LAN</description>
+    <ip>192.168.100.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <interface name="GigabitEthernet0/1">
+    <description>WAN to PE</description>
+    <ip>192.168.1.1</ip>
+    <mask>255.255.255.252</mask>
+  </interface>
+  <bgp as="65201">
+    <router-id>192.168.100.1</router-id>
+    <neighbor ip="192.168.1.2" remote-as="65101">
+      <description>PE Paris</description>
+    </neighbor>
+  </bgp>
+</config>`
+    },
+    {
+        id: 'lab_infrastructure',
+        name: 'Lab - Infrastructure Base',
+        vendor: 'lab',
+        category: 'lab',
+        description: 'Infrastructure de base multi-VLAN avec routing.',
+        icon: 'server',
+        xml: `<config target="Core-Router" host="192.168.1.1" os="ios" user="admin" password="admin">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>DATA</name></vlan>
+  <vlan id="30"><name>VOICE</name></vlan>
+  <interface name="GigabitEthernet0/0">
+    <description>WAN</description>
+    <ip>192.168.1.1</ip>
+    <mask>255.255.255.0</mask>
+  </interface>
+  <bgp as="65001">
+    <router-id>192.168.1.1</router-id>
+    <neighbor ip="192.168.1.2" remote-as="65002">
+      <description>Peer EBGP</description>
+    </neighbor>
+  </bgp>
+</config>
+<config target="Distribution-SW-01" host="192.168.1.10" os="ios" user="admin" password="admin">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>DATA</name></vlan>
+  <vlan id="30"><name>VOICE</name></vlan>
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink to Core</description>
+    <allowed-vlans>10,20,30</allowed-vlans>
+  </interface>
+  <interface name="GigabitEthernet0/2" mode="access">
+    <description>User Port</description>
+    <vlan>20</vlan>
+  </interface>
+</config>
+<config target="Distribution-SW-02" host="192.168.1.11" os="ios" user="admin" password="admin">
+  <vlan id="10"><name>MGMT</name></vlan>
+  <vlan id="20"><name>DATA</name></vlan>
+  <vlan id="30"><name>VOICE</name></vlan>
+  <interface name="GigabitEthernet0/1" mode="trunk">
+    <description>Uplink to Core</description>
+    <allowed-vlans>10,20,30</allowed-vlans>
+  </interface>
+</config>`
     }
 ];
 
