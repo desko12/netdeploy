@@ -881,6 +881,7 @@ function getVendorColor(vendor) {
         fortinet: { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/50' },
         mikrotik: { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/50' },
         paloalto: { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/50' },
+        lab: { bg: 'bg-pink-500/20', text: 'text-pink-400', border: 'border-pink-500/50' },
         generic: { bg: 'bg-slate-500/20', text: 'text-slate-400', border: 'border-slate-500/50' }
     };
     return colors[vendor] || colors.generic;
