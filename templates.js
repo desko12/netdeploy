@@ -860,6 +860,1191 @@ const templatesDB = [
     <allowed-vlans>10,20,30</allowed-vlans>
   </interface>
 </config>`
+    },
+
+    // ==================== CISCO IOS-XE COMPREHENSIVE ====================
+    {
+        id: 'cisco_iosxe_interface',
+        name: 'Cisco IOS-XE - Interface NETCONF',
+        vendor: 'cisco',
+        category: 'interface',
+        description: 'Configuration interface L3 avec IP via NETCONF Cisco IOS-XE',
+        icon: 'network',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <interfaces xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-interfaces">
+    <interface>
+      <name>GigabitEthernet1</name>
+      <description>WAN Uplink to Provider</description>
+      <enabled>true</enabled>
+      <ipv4 xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-interfaces">
+        <address>
+          <primary>
+            <address>203.0.113.10</address>
+            <mask>255.255.255.252</mask>
+          </primary>
+        </address>
+      </ipv4>
+    </interface>
+    <interface>
+      <name>GigabitEthernet2</name>
+      <description>LAN Internal Network</description>
+      <enabled>true</enabled>
+      <ipv4>
+        <address>
+          <primary>
+            <address>192.168.1.1</address>
+            <mask>255.255.255.0</mask>
+          </primary>
+        </address>
+      </ipv4>
+    </interface>
+  </interfaces>
+</config>`
+    },
+    {
+        id: 'cisco_iosxe_vlan',
+        name: 'Cisco IOS-XE - VLANs NETCONF',
+        vendor: 'cisco',
+        category: 'vlan',
+        description: 'Creation de VLANs multiples via NETCONF Cisco IOS-XE',
+        icon: 'layers',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <vlans xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-vlan">
+    <vlan>
+      <id>100</id>
+      <name>PRODUCTION_DATA</name>
+      <status>active</status>
+    </vlan>
+    <vlan>
+      <id>200</id>
+      <name>VOICE_IP</name>
+      <status>active</status>
+    </vlan>
+    <vlan>
+      <id>300</id>
+      <name>MGMT_NETWORK</name>
+      <status>active</status>
+    </vlan>
+    <vlan>
+      <id>999</id>
+      <name>NATIVE_VLAN</name>
+      <status>active</status>
+    </vlan>
+  </vlans>
+</config>`
+    },
+    {
+        id: 'cisco_iosxe_static_route',
+        name: 'Cisco IOS-XE - Route Statique NETCONF',
+        vendor: 'cisco',
+        category: 'routing',
+        description: 'Configuration route statique IPv4 via NETCONF',
+        icon: 'share-2',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <routing xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-routing">
+    <routing-instance>
+      <name>default</name>
+      <routing-protocols>
+        <routing-protocol>
+          <type>static</type>
+          <name>1</name>
+          <static-routes>
+            <ipv4>
+              <route>
+                <destination-prefix>0.0.0.0/0</destination-prefix>
+                <next-hop>
+                  <address>203.0.113.1</address>
+                  <route-preference>1</route-preference>
+                </next-hop>
+              </route>
+              <route>
+                <destination-prefix>192.168.100.0/24</destination-prefix>
+                <next-hop>
+                  <address>10.1.1.1</address>
+                  <route-preference>1</route-preference>
+                </next-hop>
+              </route>
+            </ipv4>
+          </static-routes>
+        </routing-protocol>
+      </routing-protocols>
+    </routing-instance>
+  </routing>
+</config>`
+    },
+    {
+        id: 'cisco_iosxe_ntp',
+        name: 'Cisco IOS-XE - NTP NETCONF',
+        vendor: 'cisco',
+        category: 'system',
+        description: 'Configuration serveur NTP via NETCONF',
+        icon: 'clock',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <ntp xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-ntp">
+    <server>
+      <address>10.10.10.1</address>
+      <association-type>server</association-type>
+      <prefer>true</prefer>
+    </server>
+    <server>
+      <address>10.10.10.2</address>
+      <association-type>server</association-type>
+    </server>
+    <server>
+      <address>0.fr.pool.ntp.org</address>
+      <association-type>server</association-type>
+    </server>
+    <server>
+      <address>1.fr.pool.ntp.org</address>
+      <association-type>server</association-type>
+    </server>
+  </ntp>
+</config>`
+    },
+    {
+        id: 'cisco_iosxe_dns',
+        name: 'Cisco IOS-XE - DNS NETCONF',
+        vendor: 'cisco',
+        category: 'system',
+        description: 'Configuration DNS et domain-name via NETCONF',
+        icon: 'globe',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <dns xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-dns">
+    <ipv4>
+      <server>
+        <ip-address>8.8.8.8</ip-address>
+      </server>
+      <server>
+        <ip-address>8.8.4.4</ip-address>
+      </server>
+      <server>
+        <ip-address>1.1.1.1</ip-address>
+      </server>
+    </ipv4>
+    <domain>
+      <name>network.local</name>
+    </domain>
+  </dns>
+</config>`
+    },
+    {
+        id: 'cisco_iosxe_banner',
+        name: 'Cisco IOS-XE - Banniere NETCONF',
+        vendor: 'cisco',
+        category: 'security',
+        description: 'Configuration banniere login et MOTD via NETCONF',
+        icon: 'alert-triangle',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <banner xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-banner">
+    <banner-input>
+      <type>login</type>
+      <message>###############################################################################
+# ACCES RESTREINT - RESEAU ENTREPRISE
+# Ce systeme est reserve aux utilisateurs autorises. Toute connexion non autorisee
+# sera signalee et poursuitee conformement a la legislation en vigueur.
+# Contact: admin@network.local | Urgence: +33 1 23 45 67 89
+###############################################################################</message>
+    </banner-input>
+    <banner-input>
+      <type>motd</type>
+      <message>========================================
+Bienvenue sur l'equipement de production
+Date: \\D \\T
+Utilisateur: \\u
+========================================</message>
+    </banner-input>
+  </banner>
+</config>`
+    },
+    {
+        id: 'cisco_iosxe_user',
+        name: 'Cisco IOS-XE - Utilisateurs NETCONF',
+        vendor: 'cisco',
+        category: 'security',
+        description: 'Creation utilisateurs locaux avec privileges via NETCONF',
+        icon: 'user',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <aaa xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-aaa">
+    <userauthentication>
+      <user>
+        <name>netadmin</name>
+        <privilege>15</privilege>
+        <password>
+          <encryption>5</encryption>
+          <pass>$1$encrypted$hash</pass>
+        </password>
+      </user>
+      <user>
+        <name>operator</name>
+        <privilege>7</privilege>
+        <password>
+          <encryption>5</encryption>
+          <pass>$1$encrypted$hash</pass>
+        </password>
+      </user>
+      <user>
+        <name>monitoring</name>
+        <privilege>5</privilege>
+        <password>
+          <encryption>5</encryption>
+          <pass>$1$encrypted$hash</pass>
+        </password>
+      </user>
+    </userauthentication>
+  </aaa>
+</config>`
+    },
+    {
+        id: 'cisco_iosxe_snmp',
+        name: 'Cisco IOS-XE - SNMP NETCONF',
+        vendor: 'cisco',
+        category: 'monitoring',
+        description: 'Configuration SNMP v2c avec communautes et traps via NETCONF',
+        icon: 'activity',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <snmp xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-snmp">
+    <community>
+      <community-string>
+        <name>public</name>
+        <access-list>10</access-list>
+        <view>readonly</view>
+      </community-string>
+      <community-string>
+        <name>private</name>
+        <access-list>10</access-list>
+        <view>readwrite</view>
+      </community-string>
+    </community>
+    <trap>
+      <server>192.168.1.100</server>
+      <community>public</community>
+      <version>v2c</version>
+    </trap>
+    <location>Paris-DC-Rack01-POS01</location>
+    <contact>admin@network.local | +33 1 23 45 67 89</contact>
+  </snmp>
+</config>`
+    },
+
+    // ==================== CISCO NX-OS COMPREHENSIVE ====================
+    {
+        id: 'cisco_nxos_interface',
+        name: 'Cisco NX-OS - Interface NETCONF',
+        vendor: 'cisco',
+        category: 'interface',
+        description: 'Configuration interface OpenConfig via NETCONF NX-OS',
+        icon: 'network',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <interfaces xmlns="http://openconfig.net/yang/interfaces">
+    <interface>
+      <name>Ethernet1/1</name>
+      <config>
+        <description>Server Uplink - Production</description>
+        <enabled>true</enabled>
+        <mtu>9000</mtu>
+      </config>
+    </interface>
+    <interface>
+      <name>Ethernet1/2</name>
+      <config>
+        <description>Uplink Core Switch</description>
+        <enabled>true</enabled>
+        <mtu>9000</mtu>
+      </config>
+    </interface>
+  </interfaces>
+</config>`
+    },
+    {
+        id: 'cisco_nxos_vlan',
+        name: 'Cisco NX-OS - VLANs NETCONF',
+        vendor: 'cisco',
+        category: 'vlan',
+        description: 'Creation VLANs OpenConfig via NETCONF NX-OS',
+        icon: 'layers',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <vlans xmlns="http://openconfig.net/yang/vlan">
+    <vlan>
+      <vlan-id>100</vlan-id>
+      <config>
+        <vlan-id>100</vlan-id>
+        <name>PRODUCTION_DATA</name>
+        <status>ACTIVE</status>
+      </config>
+    </vlan>
+    <vlan>
+      <vlan-id>200</vlan-id>
+      <config>
+        <vlan-id>200</vlan-id>
+        <name>VOICE</name>
+        <status>ACTIVE</status>
+      </config>
+    </vlan>
+    <vlan>
+      <vlan-id>999</vlan-id>
+      <config>
+        <vlan-id>999</vlan-id>
+        <name>NATIVE</name>
+        <status>ACTIVE</status>
+      </config>
+    </vlan>
+  </vlans>
+</config>`
+    },
+    {
+        id: 'cisco_nxos_ntp',
+        name: 'Cisco NX-OS - NTP NETCONF',
+        vendor: 'cisco',
+        category: 'system',
+        description: 'Configuration NTP via NETCONF NX-OS',
+        icon: 'clock',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <ntp xmlns="http://cisco.com/ns/yang/cisco-nx-os-device">
+    <server>
+      <address>10.10.10.1</address>
+      <prefer>true</prefer>
+    </server>
+    <server>
+      <address>10.10.10.2</address>
+    </server>
+  </ntp>
+</config>`
+    },
+    {
+        id: 'cisco_nxos_dns',
+        name: 'Cisco NX-OS - DNS NETCONF',
+        vendor: 'cisco',
+        category: 'system',
+        description: 'Configuration DNS via NETCONF NX-OS',
+        icon: 'globe',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <ip xmlns="http://cisco.com/ns/yang/cisco-nx-os-device">
+    <name-server>
+      <address>8.8.8.8</address>
+    </name-server>
+    <name-server>
+      <address>1.1.1.1</address>
+    </name-server>
+  </ip>
+</config>`
+    },
+    {
+        id: 'cisco_nxos_banner',
+        name: 'Cisco NX-OS - Banniere NETCONF',
+        vendor: 'cisco',
+        category: 'security',
+        description: 'Configuration banniere MOTD via NETCONF NX-OS',
+        icon: 'alert-triangle',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <banner xmlns="http://cisco.com/ns/yang/cisco-nx-os-device">
+    <motd-banner>#######################################################################
+# RESEAU NATIONAL DE RECHERCHE
+# Acces reserve aux personnels autorises. Toute tentative d'acces non autorise
+# est interdite et fera l'objet de poursuites.
+# NOC: noc@reseau.fr | 01 23 45 67 90
+#######################################################################</motd-banner>
+  </banner>
+</config>`
+    },
+    {
+        id: 'cisco_nxos_user',
+        name: 'Cisco NX-OS - Utilisateurs NETCONF',
+        vendor: 'cisco',
+        category: 'security',
+        description: 'Creation utilisateurs via NETCONF NX-OS',
+        icon: 'user',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <aaa xmlns="http://cisco.com/ns/yang/cisco-nx-os-device">
+    <authentication-login>
+      <auth-mode>local</auth-mode>
+    </authentication-login>
+    <users>
+      <user>
+        <name>admin</name>
+        <pwd>$1$encrypted$hash</pwd>
+        <role>network-admin</role>
+      </user>
+      <user>
+        <name>netops</name>
+        <pwd>$1$encrypted$hash</pwd>
+        <role>network-operator</role>
+      </user>
+    </users>
+  </aaa>
+</config>`
+    },
+    {
+        id: 'cisco_nxos_snmp',
+        name: 'Cisco NX-OS - SNMP NETCONF',
+        vendor: 'cisco',
+        category: 'monitoring',
+        description: 'Configuration SNMP via NETCONF NX-OS',
+        icon: 'activity',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <snmp-server xmlns="http://cisco.com/ns/yang/cisco-nx-os-device">
+    <community>public</community>
+    <community>private</community>
+    <trap-cluster>192.168.1.100</trap-cluster>
+    <location>DataCenter-Paris-Rack01-SW01</location>
+    <contact>noc@reseau.fr</contact>
+  </snmp-server>
+</config>`
+    },
+
+    // ==================== JUNIPER JUNOS COMPREHENSIVE ====================
+    {
+        id: 'juniper_interface',
+        name: 'Juniper JunOS - Interface NETCONF',
+        vendor: 'juniper',
+        category: 'interface',
+        description: 'Configuration interfaces Layer 3 et trunk via NETCONF JunOS',
+        icon: 'network',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <interfaces>
+    <interface>
+      <name>ge-0/0/0</name>
+      <description>Uplink vers Routeur Core</description>
+      <unit>
+        <name>0</name>
+        <family>
+          <inet>
+            <address>
+              <name>10.10.10.2/30</name>
+            </address>
+          </inet>
+        </family>
+      </unit>
+    </interface>
+    <interface>
+      <name>ge-0/0/1</name>
+      <description>Downlink vers Access Switch</description>
+      <mtu>9000</mtu>
+      <unit>
+        <name>0</name>
+        <family>
+          <ethernet-switching>
+            <interface-mode>trunk</interface-mode>
+            <vlan>
+              <members>100</members>
+              <members>200</members>
+              <members>300</members>
+            </vlan>
+          </ethernet-switching>
+        </family>
+      </unit>
+    </interface>
+  </interfaces>
+</config>`
+    },
+    {
+        id: 'juniper_vlan',
+        name: 'Juniper JunOS - VLANs NETCONF',
+        vendor: 'juniper',
+        category: 'vlan',
+        description: 'Creation VLANs avec IRB et L3 via NETCONF JunOS',
+        icon: 'layers',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <vlans>
+    <vlan>
+      <name>PROD_DATA</name>
+      <vlan-id>100</vlan-id>
+      <description>VLAN Production Donnees</description>
+      <l3-interface>vlan.100</l3-interface>
+    </vlan>
+    <vlan>
+      <name>VOICE</name>
+      <vlan-id>200</vlan-id>
+      <description>VLAN Voix IP</description>
+      <l3-interface>vlan.200</l3-interface>
+    </vlan>
+    <vlan>
+      <name>MGMT</name>
+      <vlan-id>300</vlan-id>
+      <description>VLAN Management</description>
+      <l3-interface>vlan.300</l3-interface>
+    </vlan>
+  </vlans>
+</config>`
+    },
+    {
+        id: 'juniper_static_route',
+        name: 'Juniper JunOS - Route Statique NETCONF',
+        vendor: 'juniper',
+        category: 'routing',
+        description: 'Configuration routes statiques via NETCONF JunOS',
+        icon: 'share-2',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <routing-options>
+    <static>
+      <route>
+        <name>0.0.0.0/0</name>
+        <next-table>inet.0</next-table>
+        <qualified-next-hop>
+          <address>10.10.10.1</address>
+          <preference>1</preference>
+        </qualified-next-hop>
+      </route>
+      <route>
+        <name>192.168.0.0/16</name>
+        <next-hop>10.1.1.1</next-hop>
+        <preference>10</preference>
+      </route>
+      <route>
+        <name>10.0.0.0/8</name>
+        <next-hop>10.10.10.1</next-hop>
+        <preference>5</preference>
+      </route>
+    </static>
+  </routing-options>
+</config>`
+    },
+    {
+        id: 'juniper_ntp',
+        name: 'Juniper JunOS - NTP NETCONF',
+        vendor: 'juniper',
+        category: 'system',
+        description: 'Configuration NTP via NETCONF JunOS',
+        icon: 'clock',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <system>
+    <ntp>
+      <boot-server>10.10.10.1</boot-server>
+      <server>
+        <name>10.10.10.1</name>
+        <prefer/>
+      </server>
+      <server>
+        <name>10.10.10.2</name>
+      </server>
+      <server>
+        <name>0.fr.pool.ntp.org</name>
+      </server>
+      <server>
+        <name>1.fr.pool.ntp.org</name>
+      </server>
+    </ntp>
+  </system>
+</config>`
+    },
+    {
+        id: 'juniper_dns',
+        name: 'Juniper JunOS - DNS NETCONF',
+        vendor: 'juniper',
+        category: 'system',
+        description: 'Configuration DNS et domain-search via NETCONF JunOS',
+        icon: 'globe',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <system>
+    <name-server>
+      <address>8.8.8.8</address>
+    </name-server>
+    <name-server>
+      <address>8.8.4.4</address>
+    </name-server>
+    <name-server>
+      <address>1.1.1.1</address>
+    </name-server>
+    <domain-name>juniper.local</domain-name>
+    <domain-search>
+      <list>network.local</list>
+      <list>entreprise.fr</list>
+    </domain-search>
+  </system>
+</config>`
+    },
+    {
+        id: 'juniper_banner',
+        name: 'Juniper JunOS - Banniere NETCONF',
+        vendor: 'juniper',
+        category: 'security',
+        description: 'Configuration login et announcement banners via NETCONF',
+        icon: 'alert-triangle',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <system>
+    <login>
+      <banner>
+        <message>################################################################################
+# ACCES AUTORISE UNIQUEMENT - SYSTEME PROTEGE
+# Ce systeme appartient a l'entreprise et son utilisation est reservee aux
+# employs autorises. Toute tentative d'acces non autorisee constitue une
+# infraction penale et sera signalee aux autorites competentes.
+# Contact Securite: security@entreprise.fr | Urgence: 01 23 45 67 89
+################################################################################</message>
+      </banner>
+      <announcement>
+<message>================================================================================
+Bienvenue sur l'equipement Juniper - $(hostname)
+Version Junos: $(version)
+Derniere connexion: $(time)
+================================================================================</message>
+      </announcement>
+    </login>
+  </system>
+</config>`
+    },
+    {
+        id: 'juniper_user',
+        name: 'Juniper JunOS - Utilisateurs NETCONF',
+        vendor: 'juniper',
+        category: 'security',
+        description: 'Creation utilisateurs avec classes via NETCONF JunOS',
+        icon: 'user',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <system>
+    <login>
+      <user>
+        <name>admin</name>
+        <uid>2000</uid>
+        <class>super-user</class>
+        <authentication>
+          <encrypted-password>$1$encrypted$hash</encrypted-password>
+        </authentication>
+      </user>
+      <user>
+        <name>netadmin</name>
+        <uid>2001</uid>
+        <class>operator</class>
+        <authentication>
+          <encrypted-password>$1$encrypted$hash</encrypted-password>
+        </authentication>
+      </user>
+      <user>
+        <name>monitoring</name>
+        <uid>2002</uid>
+        <class>read-only</class>
+        <authentication>
+          <ssh-rsa>
+            <name>ssh-rsa AAAAB3NzaC1... user@monitoring</name>
+          </ssh-rsa>
+        </authentication>
+      </user>
+    </login>
+  </system>
+</config>`
+    },
+    {
+        id: 'juniper_snmp',
+        name: 'Juniper JunOS - SNMP NETCONF',
+        vendor: 'juniper',
+        category: 'monitoring',
+        description: 'Configuration SNMP avec communautes et trap-groups via NETCONF',
+        icon: 'activity',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <snmp>
+    <location>Paris-DC-Rack01-vMX-01</location>
+    <contact>admin@juniper.local</contact>
+    <community>
+      <name>public</name>
+      <authorization>read-only</authorization>
+    </community>
+    <community>
+      <name>private</name>
+      <authorization>read-write</authorization>
+    </community>
+    <trap-group>
+      <name>NOC-TRAPS</name>
+      <destination-address>
+        <name>192.168.1.100</name>
+      </destination-address>
+      <destination-address>
+        <name>192.168.1.101</name>
+      </destination-address>
+    </trap-group>
+  </snmp>
+</config>`
+    },
+
+    // ==================== ARUBA AOS COMPREHENSIVE ====================
+    {
+        id: 'aruba_interface',
+        name: 'Aruba EOS - Interface NETCONF',
+        vendor: 'aruba',
+        category: 'interface',
+        description: 'Configuration interface L3 via NETCONF Aruba EOS',
+        icon: 'network',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <interfaces xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <interface>
+      <name>1/1/1</name>
+      <config>
+        <description>Uplink vers Distribution</description>
+      </config>
+      <subinterface>
+        <id>0</id>
+        <ipv4>
+          <address>
+            <ip>10.10.20.2</ip>
+            <prefix-length>30</prefix-length>
+          </address>
+        </ipv4>
+      </subinterface>
+    </interface>
+    <interface>
+      <name>1/1/2</name>
+      <config>
+        <description>Port Access User</description>
+      </config>
+    </interface>
+  </interfaces>
+</config>`
+    },
+    {
+        id: 'aruba_vlan',
+        name: 'Aruba EOS - VLANs NETCONF',
+        vendor: 'aruba',
+        category: 'vlan',
+        description: 'Creation VLANs via NETCONF Aruba EOS',
+        icon: 'layers',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <vlans xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <vlan>
+      <id>100</id>
+      <name>CORP_DATA</name>
+    </vlan>
+    <vlan>
+      <id>200</id>
+      <name>CORP_VOICE</name>
+    </vlan>
+    <vlan>
+      <id>300</id>
+      <name>CORP_MGMT</name>
+    </vlan>
+  </vlans>
+</config>`
+    },
+    {
+        id: 'aruba_static_route',
+        name: 'Aruba EOS - Route Statique NETCONF',
+        vendor: 'aruba',
+        category: 'routing',
+        description: 'Configuration route statique via NETCONF Aruba EOS',
+        icon: 'share-2',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <routing xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <static-routes>
+      <ipv4>
+        <route>
+          <prefix>0.0.0.0/0</prefix>
+          <next-hop>10.10.20.1</next-hop>
+        </route>
+        <route>
+          <prefix>172.16.0.0/12</prefix>
+          <next-hop>10.10.20.1</next-hop>
+        </route>
+      </ipv4>
+    </static-routes>
+  </routing>
+</config>`
+    },
+    {
+        id: 'aruba_ntp',
+        name: 'Aruba EOS - NTP NETCONF',
+        vendor: 'aruba',
+        category: 'system',
+        description: 'Configuration NTP via NETCONF Aruba EOS',
+        icon: 'clock',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <system xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <ntp>
+      <server>
+        <address>10.10.10.1</address>
+        <prefer>true</prefer>
+      </server>
+      <server>
+        <address>10.10.10.2</address>
+      </server>
+    </ntp>
+  </system>
+</config>`
+    },
+    {
+        id: 'aruba_dns',
+        name: 'Aruba EOS - DNS NETCONF',
+        vendor: 'aruba',
+        category: 'system',
+        description: 'Configuration DNS via NETCONF Aruba EOS',
+        icon: 'globe',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <system xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <dns>
+      <server>
+        <address>8.8.8.8</address>
+      </server>
+      <server>
+        <address>1.1.1.1</address>
+      </server>
+    </dns>
+    <domain-name>aruba.local</domain-name>
+  </system>
+</config>`
+    },
+    {
+        id: 'aruba_banner',
+        name: 'Aruba EOS - Banniere NETCONF',
+        vendor: 'aruba',
+        category: 'security',
+        description: 'Configuration banniere login via NETCONF Aruba',
+        icon: 'alert-triangle',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <system xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <banners>
+      <login>
+<message>##############################################################################
+# ACCES RESTREINT - RESEAU D'ENTREPRISE ARUBA
+# Cet equipement est reserve aux personnalites autorisees.
+# Toutes activites non autorisees seront signalees.
+##############################################################################</message>
+      </login>
+    </banners>
+  </system>
+</config>`
+    },
+    {
+        id: 'aruba_user',
+        name: 'Aruba EOS - Utilisateurs NETCONF',
+        vendor: 'aruba',
+        category: 'security',
+        description: 'Creation utilisateurs via NETCONF Aruba EOS',
+        icon: 'user',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <system xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <aaa>
+      <authentication>
+        <user>
+          <name>admin</name>
+          <password>$1$encrypted$hash</password>
+          <role>superuser</role>
+        </user>
+        <user>
+          <name>netop</name>
+          <password>$1$encrypted$hash</password>
+          <role>manager</role>
+        </user>
+        <user>
+          <name>guest</name>
+          <password>$1$encrypted$hash</password>
+          <role>guest</role>
+        </user>
+      </authentication>
+    </aaa>
+  </system>
+</config>`
+    },
+    {
+        id: 'aruba_snmp',
+        name: 'Aruba EOS - SNMP NETCONF',
+        vendor: 'aruba',
+        category: 'monitoring',
+        description: 'Configuration SNMP via NETCONF Aruba EOS',
+        icon: 'activity',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <snmp xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <community>
+      <name>public</name>
+      <access-mode>read-only</access-mode>
+    </community>
+    <community>
+      <name>private</name>
+      <access-mode>read-write</access-mode>
+    </community>
+    <location>Aruba-SW-5400-Paris-Floor1</location>
+    <contact>admin@aruba.local</contact>
+  </snmp>
+</config>`
+    },
+
+    // ==================== FORTINET FORTIOS COMPREHENSIVE ====================
+    {
+        id: 'fortinet_interface',
+        name: 'Fortinet FortiOS - Interface NETCONF',
+        vendor: 'fortinet',
+        category: 'interface',
+        description: 'Configuration interfaces physiques et VLANs via NETCONF FortiOS',
+        icon: 'network',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <interface>
+      <name>port1</name>
+      <ip>10.10.10.1 255.255.255.0</ip>
+      <description>WAN - Connection ISP</description>
+      <alias>WAN-UPLINK</alias>
+      <芒聙聹ype>physical</芒聙聹ype>
+      <芒聙聹tatus>up</芒聙聹tatus>
+      <芒聙聹芒聙聹>9000</芒聙聹芒聙聹>
+    </interface>
+    <interface>
+      <name>port2</name>
+      <ip>192.168.1.1 255.255.255.0</ip>
+      <description>LAN - Internal Network</description>
+      <alias>LAN-INTERNAL</alias>
+      <芒聙聹ype>physical</芒聙聹ype>
+      <芒聙聹tatus>up</芒聙聹tatus>
+    </interface>
+    <interface>
+      <name>port3</name>
+      <description>DMZ - Serveurs</description>
+      <alias>DMZ-SERVERS</alias>
+      <芒聙聹ype>physical</芒聙聹ype>
+      <芒聙聹tatus>up</芒聙聹tatus>
+    </interface>
+  </system>
+</config>`
+    },
+    {
+        id: 'fortinet_vlan',
+        name: 'Fortinet FortiOS - VLAN NETCONF',
+        vendor: 'fortinet',
+        category: 'vlan',
+        description: 'Creation interfaces VLAN via NETCONF FortiOS',
+        icon: 'layers',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <interface>
+      <name>vlan100</name>
+      <芒聙聹ype>vlan</芒聙聹ype>
+      <芒聙聹tatus>up</芒聙聹tatus>
+      <ip>192.168.100.1 255.255.255.0</ip>
+      <description>DATA_VLAN</description>
+      <vlanid>100</vlanid>
+      <interface>port2</interface>
+    </interface>
+    <interface>
+      <name>vlan200</name>
+      <芒聙聹ype>vlan</芒聙聹ype>
+      <芒聙聹tatus>up</芒聙聹tatus>
+      <ip>192.168.200.1 255.255.255.0</ip>
+      <description>VOICE_VLAN</description>
+      <vlanid>200</vlanid>
+      <interface>port2</interface>
+    </interface>
+  </system>
+</config>`
+    },
+    {
+        id: 'fortinet_static_route',
+        name: 'Fortinet FortiOS - Route Statique NETCONF',
+        vendor: 'fortinet',
+        category: 'routing',
+        description: 'Configuration routes statiques via NETCONF FortiOS',
+        icon: 'share-2',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <router>
+    <static>
+      <seq-num>
+        <id>1</id>
+        <dst>0.0.0.0 0.0.0.0</dst>
+        <gateway>10.10.10.254</gateway>
+        <device>port1</device>
+        <distance>10</distance>
+        <芒聙聹atus>enable</芒聙聹atus>
+      </seq-num>
+      <seq-num>
+        <id>2</id>
+        <dst>192.168.50.0 255.255.255.0</dst>
+        <gateway>192.168.1.254</gateway>
+        <device>port2</device>
+        <distance>10</distance>
+      </seq-num>
+      <seq-num>
+        <id>3</id>
+        <dst>10.0.0.0 255.0.0.0</dst>
+        <gateway>10.10.10.1</gateway>
+        <device>port1</device>
+        <distance>5</distance>
+      </seq-num>
+    </static>
+  </router>
+</config>`
+    },
+    {
+        id: 'fortinet_ntp',
+        name: 'Fortinet FortiOS - NTP NETCONF',
+        vendor: 'fortinet',
+        category: 'system',
+        description: 'Configuration NTP via NETCONF FortiOS',
+        icon: 'clock',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <ntpserver>
+      <ntpserver-1>
+        <server>10.10.10.1</server>
+        <id>1</id>
+        <prefer>enable</prefer>
+        <status>enable</status>
+      </ntpserver-1>
+      <ntpserver-2>
+        <server>10.10.10.2</server>
+        <id>2</id>
+        <status>enable</status>
+      </ntpserver-2>
+      <ntpserver-3>
+        <server>0.fr.pool.ntp.org</server>
+        <id>3</id>
+        <status>enable</status>
+      </ntpserver-3>
+    </ntpserver>
+    <ntp>
+      <sync-interval>60</sync-interval>
+    </ntp>
+  </system>
+</config>`
+    },
+    {
+        id: 'fortinet_dns',
+        name: 'Fortinet FortiOS - DNS NETCONF',
+        vendor: 'fortinet',
+        category: 'system',
+        description: 'Configuration DNS via NETCONF FortiOS',
+        icon: 'globe',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <dns>
+      <primary>8.8.8.8</primary>
+      <secondary>8.8.4.4</secondary>
+      <tertiary>1.1.1.1</tertiary>
+    </dns>
+  </system>
+</config>`
+    },
+    {
+        id: 'fortinet_banner',
+        name: 'Fortinet FortiOS - Banniere NETCONF',
+        vendor: 'fortinet',
+        category: 'security',
+        description: 'Configuration page de login via NETCONF FortiOS',
+        icon: 'alert-triangle',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <custom>
+      <login-page>
+<message>################################################################################
+# RESEAU SECURISE - ACCES RESTREINT
+# Ce reseau est surveille et protege. Tout acces non autorise est interdit
+# et fera l'objet de poursuites conformement a la legislation en vigueur.
+# Centre de Supervision: noc@fortinet.local | Tel: 01 23 45 67 89
+################################################################################</message>
+      </login-page>
+    </custom>
+  </system>
+</config>`
+    },
+    {
+        id: 'fortinet_user',
+        name: 'Fortinet FortiOS - Utilisateurs NETCONF',
+        vendor: 'fortinet',
+        category: 'security',
+        description: 'Creation utilisateurs locaux via NETCONF FortiOS',
+        icon: 'user',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <user>
+    <local>
+      <name>admin</name>
+      <type>password</type>
+      <passwd>$1$encrypted$hash</passwd>
+      <profile>super_admin</profile>
+    </local>
+    <local>
+      <name>netadmin</name>
+      <type>password</type>
+      <passwd>$1$encrypted$hash</passwd>
+      <profile>prof_admin</profile>
+    </local>
+    <local>
+      <name>guest</name>
+      <type>password</type>
+      <passwd>$1$encrypted$hash</passwd>
+      <profile>guest_admin</profile>
+    </local>
+  </user>
+  <user>
+    <group>
+      <name>network-admins</name>
+      <芒聙聹ype>firewall</芒聙聹ype>
+      <member>admin</member>
+      <member>netadmin</member>
+    </group>
+  </user>
+</config>`
+    },
+    {
+        id: 'fortinet_snmp',
+        name: 'Fortinet FortiOS - SNMP NETCONF',
+        vendor: 'fortinet',
+        category: 'monitoring',
+        description: 'Configuration SNMP via NETCONF FortiOS',
+        icon: 'activity',
+        xml: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <snmp>
+      <sysinfo>
+        <status>enable</status>
+        <location>Paris-DC-FW-01</location>
+        <contact>admin@fortinet.local</contact>
+      </sysinfo>
+      <community>
+        <name>public</name>
+        <id>1</id>
+        <芒聙聹ype>v1v2c</芒聙聹ype>
+        <hosts>
+          <host>
+            <id>1</id>
+            <ip>192.168.1.100 255.255.255.255</ip>
+          </host>
+        </hosts>
+      </community>
+      <community>
+        <name>private</name>
+        <id>2</id>
+        <芒聙聹ype>v1v2c</芒聙聹ype>
+        <hosts>
+          <host>
+            <id>1</id>
+            <ip>192.168.1.100 255.255.255.255</ip>
+          </host>
+        </hosts>
+      </community>
+    </snmp>
+  </system>
+</config>`
     }
 ];
 
@@ -899,3 +2084,967 @@ function getCategoryIcon(category) {
     };
     return icons[category] || 'file-code';
 }
+
+// ==================== COMPREHENSIVE NETCONF CONFIGURATIONS ====================
+
+// CISCO IOS-XE NETCONF
+const ciscoIosxeNetconf = {
+    interface: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <interfaces xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-interfaces">
+    <interface>
+      <name>GigabitEthernet1</name>
+      <description>WAN Uplink to Provider</description>
+      <enabled>true</enabled>
+      <ipv4 xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-interfaces">
+        <address>
+          <primary>
+            <address>203.0.113.10</address>
+            <mask>255.255.255.252</mask>
+          </primary>
+        </address>
+      </ipv4>
+    </interface>
+  </interfaces>
+</config>`,
+
+    vlan: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <vlans xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-vlan">
+    <vlan>
+      <id>100</id>
+      <name>DATA_VLAN</name>
+      <status>active</status>
+    </vlan>
+    <vlan>
+      <id>200</id>
+      <name>VOICE_VLAN</name>
+      <status>active</status>
+    </vlan>
+    <vlan>
+      <id>300</id>
+      <name>MGMT_VLAN</name>
+      <status>active</status>
+    </vlan>
+  </vlans>
+</config>`,
+
+    staticRoute: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <routing xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-routing">
+    <routing-instance xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-routing" xmlns:rv="http://cisco.com/ns/yang/Cisco-IOS-XE-routing">
+      <name>default</name>
+      <routing-protocols>
+        <routing-protocol>
+          <type>static</type>
+          <name>1</name>
+          <static-routes>
+            <ipv4 xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-routing">
+              <route>
+                <destination-prefix>0.0.0.0/0</destination-prefix>
+                <next-hop>
+                  <address>203.0.113.1</address>
+                  <route-preference>1</route-preference>
+                </next-hop>
+              </route>
+              <route>
+                <destination-prefix>192.168.100.0/24</destination-prefix>
+                <next-hop>
+                  <address>10.1.1.1</address>
+                  <route-preference>1</route-preference>
+                </next-hop>
+              </route>
+            </ipv4>
+          </static-routes>
+        </routing-protocol>
+      </routing-protocols>
+    </routing-instance>
+  </routing>
+</config>`,
+
+    ntp: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <ntp xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-ntp">
+    <server>
+      <address>10.10.10.1</address>
+      <association-type>server</association-type>
+      <prefer>true</prefer>
+    </server>
+    <server>
+      <address>10.10.10.2</address>
+      <association-type>server</association-type>
+      <prefer>false</prefer>
+    </server>
+    <server>
+      <address>0.fr.pool.ntp.org</address>
+      <association-type>server</association-type>
+      <prefer>false</prefer>
+    </server>
+  </ntp>
+</config>`,
+
+    dns: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <dns xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-dns">
+    <ipv4>
+      <server>
+        <ip-address>8.8.8.8</ip-address>
+        <key/>
+      </server>
+      <server>
+        <ip-address>8.8.4.4</ip-address>
+        <key/>
+      </server>
+      <server>
+        <ip-address>1.1.1.1</ip-address>
+        <key/>
+      </server>
+    </ipv4>
+    <domain>
+      <name>network.local</name>
+    </domain>
+  </dns>
+</config>`,
+
+    banner: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <banner xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-banner">
+    <banner-input>
+      <type>login</type>
+      <message>###############################################################################
+# ACCES RESTREINT - RESEAU ENTREPRISE                                           #
+#                                                                                #
+# Ce systeme est reserve aux utilisateurs autorises. Toute connexion non autorisee #
+# sera signalee et poursuitee conformement a la legislation en vigueur.           #
+#                                                                                #
+# Contact: admin@network.local | Urgence: +33 1 23 45 67 89                     #
+###############################################################################</message>
+    </banner-input>
+    <banner-input>
+      <type>motd</type>
+      <message>========================================
+Bienvenue sur l'equipement de production
+Date: \\D \\T
+Utilisateur: \\u
+========================================</message>
+    </banner-input>
+  </banner>
+</config>`,
+
+    user: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <aaa xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-aaa">
+    <userauthentication>
+      <user>
+        <name>netadmin</name>
+        <privilege>15</privilege>
+        <password>
+          <encryption>5</encryption>
+          <pass>$1$encrypted$hash</pass>
+        </password>
+      </user>
+      <user>
+        <name>operator</name>
+        <privilege>7</privilege>
+        <password>
+          <encryption>5</encryption>
+          <pass>$1$encrypted$hash</pass>
+        </password>
+      </user>
+      <user>
+        <name>monitoring</name>
+        <privilege>5</privilege>
+        <password>
+          <encryption>5</encryption>
+          <pass>$1$encrypted$hash</pass>
+        </password>
+      </user>
+    </userauthentication>
+  </aaa>
+</config>`,
+
+    snmp: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <snmp xmlns="http://cisco.com/ns/yang/Cisco-IOS-XE-snmp">
+    <community>
+      <community-string>
+        <name>public</name>
+        <access-list>10</access-list>
+        <view>readonly</view>
+      </community-string>
+      <community-string>
+        <name>private</name>
+        <access-list>10</access-list>
+        <view>readwrite</view>
+      </community-string>
+    </community>
+    <trap>
+      <server>192.168.1.100</server>
+      <community>public</community>
+      <version>v2c</version>
+    </trap>
+    <location>Paris-DC-Rack01-POS01</location>
+    <contact>admin@network.local | +33 1 23 45 67 89</contact>
+    <chassis-id>CISCO-ISR-4331-K9</chassis-id>
+  </snmp>
+</config>`
+};
+
+// CISCO NX-OS NETCONF
+const ciscoNxosNetconf = {
+    interface: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <interfaces xmlns="http://openconfig.net/yang/interfaces">
+    <interface>
+      <name> Ethernet1/1</name>
+      <config>
+        <description>Server Uplink - Production</description>
+        <enabled>true</enabled>
+        <mtu>9000</mtu>
+      </config>
+      <subinterfaces>
+        <subinterface>
+          <index>0</index>
+          <config>
+            <description>VLAN 100 - DATA</description>
+            <enabled>true</enabled>
+          </config>
+        </subinterface>
+      </subinterfaces>
+    </interface>
+  </interfaces>
+</config>`,
+
+    vlan: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <vlans xmlns="http://openconfig.net/yang/vlan">
+    <vlan>
+      <vlan-id>100</vlan-id>
+      <config>
+        <vlan-id>100</vlan-id>
+        <name>PRODUCTION_DATA</name>
+        <status>ACTIVE</status>
+      </config>
+    </vlan>
+    <vlan>
+      <vlan-id>200</vlan-id>
+      <config>
+        <vlan-id>200</vlan-id>
+        <name>VOICE</name>
+        <status>ACTIVE</status>
+      </config>
+    </vlan>
+    <vlan>
+      <vlan-id>999</vlan-id>
+      <config>
+        <vlan-id>999</vlan-id>
+        <name>NATIVE</name>
+        <status>ACTIVE</status>
+      </config>
+    </vlan>
+  </vlans>
+</config>`,
+
+    staticRoute: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <routing-policy xmlns="http://openconfig.net/yang/routing-policy">
+  </routing-policy>
+</config>`,
+
+    ntp: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <ntp xmlns="http://cisco.com/ns/yang/cisco-nx-os-device">
+    <server>
+      <address>10.10.10.1</address>
+      <prefer>true</prefer>
+    </server>
+    <server>
+      <address>10.10.10.2</address>
+      <prefer>false</prefer>
+    </server>
+  </ntp>
+</config>`,
+
+    dns: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <ip xmlns="http://cisco.com/ns/yang/cisco-nx-os-device">
+    <name-server>
+      <address>8.8.8.8</address>
+    </name-server>
+    <name-server>
+      <address>1.1.1.1</address>
+    </name-server>
+  </ip>
+</config>`,
+
+    banner: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <banner xmlns="http://cisco.com/ns/yang/cisco-nx-os-device">
+    <motd-banner>#######################################################################
+#                     RESEAU NATIONAL DE RECHERCHE                                 #
+#                                                                                 #
+#  Acces reserve aux personnels autorises. Toute tentative d'acces non autorise   #
+#  est interdite et fera l'objet de poursuites conformement aux articles 323-1    #
+#  et suivants du Code Penal.                                                    #
+#                                                                                 #
+#  En cas d'incident, contactez le NOC: noc@reseau.fr | 01 23 45 67 90          #
+#######################################################################</motd-banner>
+  </banner>
+</config>`,
+
+    user: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <aaa xmlns="http://cisco.com/ns/yang/cisco-nx-os-device">
+    <authentication-login>
+      <auth-mode>local</auth-mode>
+    </authentication-login>
+    <users>
+      <user>
+        <name>admin</name>
+        <pwd>$1$encrypted$hash</pwd>
+        <role>network-admin</role>
+      </user>
+      <user>
+        <name>netops</name>
+        <pwd>$1$encrypted$hash</pwd>
+        <role>network-operator</role>
+      </user>
+      <user>
+        <name>readonly</name>
+        <pwd>$1$encrypted$hash</pwd>
+        <role>vdc-operator</role>
+      </user>
+    </users>
+  </aaa>
+</config>`,
+
+    snmp: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <snmp-server xmlns="http://cisco.com/ns/yang/cisco-nx-os-device">
+    <community>public</community>
+    <community>private</community>
+    <trap-cluster>192.168.1.100</trap-cluster>
+    <location>DataCenter-Paris-Rack01-SW01</location>
+    <contact>noc@reseau.fr</contact>
+  </snmp-server>
+</config>`
+};
+
+// JUNIPER JUNOS NETCONF
+const juniperJunosNetconf = {
+    interface: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm" xmlns:junos="http://xml.juniper.net/junos/commit/1.1">
+  <interfaces>
+    <interface>
+      <name>ge-0/0/0</name>
+      <description>Uplink vers Routeur Core</description>
+      <unit>
+        <name>0</name>
+        <family>
+          <inet>
+            <address>
+              <name>10.10.10.2/30</name>
+            </address>
+          </inet>
+        </family>
+      </unit>
+    </interface>
+    <interface>
+      <name>ge-0/0/1</name>
+      <description>Downlink vers Access Switch</description>
+      <mtu>9000</mtu>
+      <unit>
+        <name>0</name>
+        <family>
+          <ethernet-switching>
+            <interface-mode>trunk</interface-mode>
+            <vlan>
+              <members>100</members>
+              <members>200</members>
+              <members>300</members>
+            </vlan>
+          </ethernet-switching>
+        </family>
+      </unit>
+    </interface>
+  </interfaces>
+</config>`,
+
+    vlan: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <vlans>
+    <vlan>
+      <name>PROD_DATA</name>
+      <vlan-id>100</vlan-id>
+      <description>VLAN Production Donnees</description>
+      <l3-interface>vlan.100</l3-interface>
+    </vlan>
+    <vlan>
+      <name>VOICE</name>
+      <vlan-id>200</vlan-id>
+      <description>VLAN Voix IP</description>
+      <l3-interface>vlan.200</l3-interface>
+    </vlan>
+    <vlan>
+      <name>MGMT</name>
+      <vlan-id>300</vlan-id>
+      <description>VLAN Management</description>
+      <l3-interface>vlan.300</l3-interface>
+    </vlan>
+  </vlans>
+</config>`,
+
+    staticRoute: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <routing-options>
+    <static>
+      <route>
+        <name>0.0.0.0/0</name>
+        <next-table>inet.0</next-table>
+        <qualified-next-hop>
+          <address>10.10.10.1</address>
+          <preference>1</preference>
+        </qualified-next-hop>
+      </route>
+      <route>
+        <name>192.168.0.0/16</name>
+        <next-hop>10.1.1.1</next-hop>
+        <preference>10</preference>
+      </route>
+      <route>
+        <name>10.0.0.0/8</name>
+        <next-hop>10.10.10.1</next-hop>
+        <preference>5</preference>
+      </route>
+    </static>
+  </routing-options>
+</config>`,
+
+    ntp: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <system>
+    <ntp>
+      <boot-server>10.10.10.1</boot-server>
+      <server>
+        <name>10.10.10.1</name>
+        <prefer/>
+      </server>
+      <server>
+        <name>10.10.10.2</name>
+      </server>
+      <server>
+        <name>0.fr.pool.ntp.org</name>
+      </server>
+      <server>
+        <name>1.fr.pool.ntp.org</name>
+      </server>
+    </ntp>
+  </system>
+</config>`,
+
+    dns: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <system>
+    <name-server>
+      <address>8.8.8.8</address>
+    </name-server>
+    <name-server>
+      <address>8.8.4.4</address>
+    </name-server>
+    <name-server>
+      <address>1.1.1.1</address>
+    </name-server>
+    <domain-name>juniper.local</domain-name>
+    <domain-search>
+      <list>network.local</list>
+      <list>entreprise.fr</list>
+    </domain-search>
+  </system>
+</config>`,
+
+    banner: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <system>
+    <login>
+      <banner>
+        <message>################################################################################
+#                                                                                #
+#          ACCES AUTORISE UNIQUEMENT - SYSTEME PROTEGE                            #
+#                                                                                #
+#  Ce systeme appartient a l'entreprise et son utilisation est reservee aux       #
+#  employs autorises. Toute tentative d'acces non autorisee constitue une        #
+#  infraction penale et sera signalee aux autorites competentes.                 #
+#                                                                                #
+#  Contact Securite: security@entreprise.fr | Urgence: 01 23 45 67 89           #
+#                                                                                #
+################################################################################</message>
+      </banner>
+      <announcement>
+<message>================================================================================
+              Bienvenue sur l'equipement Juniper - $(hostname)
+              Version Junos: $(version)
+              Derniere connexion: $(time)
+================================================================================</message>
+      </announcement>
+    </login>
+  </system>
+</config>`,
+
+    user: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <system>
+    <login>
+      <user>
+        <name>admin</name>
+        <uid>2000</uid>
+        <class>super-user</class>
+        <authentication>
+          <encrypted-password>$1$encrypted$hash</encrypted-password>
+        </authentication>
+      </user>
+      <user>
+        <name>netadmin</name>
+        <uid>2001</uid>
+        <class>operator</class>
+        <authentication>
+          <encrypted-password>$1$encrypted$hash</encrypted-password>
+        </authentication>
+      </user>
+      <user>
+        <name>monitoring</name>
+        <uid>2002</uid>
+        <class>read-only</class>
+        <authentication>
+          <ssh-rsa>
+            <name>ssh-rsa AAAAB3NzaC1... user@monitoring</name>
+          </ssh-rsa>
+        </authentication>
+      </user>
+    </login>
+  </system>
+</config>`,
+
+    snmp: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.juniper.net/xnm/1.1/xnm">
+  <snmp>
+    <location>Paris-DC-Rack01-vMX-01</location>
+    <contact>admin@juniper.local</contact>
+    <community>
+      <name>public</name>
+      <authorization>read-only</authorization>
+    </community>
+    <community>
+      <name>private</name>
+      <authorization>read-write</authorization>
+    </community>
+    <trap-group>
+      <name>NOC-TRAPS</name>
+      <destination-address>
+        <name>192.168.1.100</name>
+      </destination-address>
+      <destination-address>
+        <name>192.168.1.101</name>
+      </destination-address>
+    </trap-group>
+  </snmp>
+</config>`
+};
+
+// ARUBA AOS-S NETCONF
+const arubaAosNetconf = {
+    interface: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <interfaces xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <interface>
+      <name>1/1/1</name>
+      <config>
+        <description>Uplink vers Distribution</description>
+        <type gigabitethernet/>
+      </config>
+      <subinterface>
+        <id>0</id>
+        <ipv4>
+          <address>
+            <ip>10.10.20.2</ip>
+            <prefix-length>30</prefix-length>
+          </address>
+        </ipv4>
+      </subinterface>
+    </interface>
+    <interface>
+      <name>1/1/2</name>
+      <config>
+        <description>Port Access User</description>
+        <type gigabitethernet/>
+      </config>
+    </interface>
+  </interfaces>
+</config>`,
+
+    vlan: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <vlans xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <vlan>
+      <id>100</id>
+      <name>CORP_DATA</name>
+    </vlan>
+    <vlan>
+      <id>200</id>
+      <name>CORP_VOICE</name>
+    </vlan>
+    <vlan>
+      <id>300</id>
+      <name>CORP_MGMT</name>
+    </vlan>
+  </vlans>
+</config>`,
+
+    staticRoute: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <routing xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <static-routes>
+      <ipv4>
+        <route>
+          <prefix>0.0.0.0/0</prefix>
+          <next-hop>10.10.20.1</next-hop>
+        </route>
+        <route>
+          <prefix>172.16.0.0/12</prefix>
+          <next-hop>10.10.20.1</next-hop>
+        </route>
+      </ipv4>
+    </static-routes>
+  </routing>
+</config>`,
+
+    ntp: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <system xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <ntp>
+      <server>
+        <address>10.10.10.1</address>
+        <prefer>true</prefer>
+      </server>
+      <server>
+        <address>10.10.10.2</address>
+      </server>
+    </ntp>
+  </system>
+</config>`,
+
+    dns: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <system xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <dns>
+      <server>
+        <address>8.8.8.8</address>
+      </server>
+      <server>
+        <address>1.1.1.1</address>
+      </server>
+    </dns>
+    <domain-name>aruba.local</domain-name>
+  </system>
+</config>`,
+
+    banner: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <system xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <banners>
+      <login>
+<message>##############################################################################
+#                                                                            #
+#   ACCES RESTREINT - RESEAU D'ENTREPRISE ARUBA                              #
+#                                                                            #
+#   Cet equipement est reserve aux personnalites autorisees.                  #
+#   Toutes activites non autorisees seront signalees.                         #
+#                                                                            #
+##############################################################################</message>
+      </login>
+    </banners>
+  </system>
+</config>`,
+
+    user: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <system xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <aaa>
+      <authentication>
+        <user>
+          <name>admin</name>
+          <password>$1$encrypted$hash</password>
+          <role>superuser</role>
+        </user>
+        <user>
+          <name>netop</name>
+          <password>$1$encrypted$hash</password>
+          <role>manager</role>
+        </user>
+        <user>
+          <name>guest</name>
+          <password>$1$encrypted$hash</password>
+          <role>guest</role>
+        </user>
+      </authentication>
+    </aaa>
+  </system>
+</config>`,
+
+    snmp: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+  <snmp xmlns="http://www.arubanetworks.com/yang/1.0/aruba-webui">
+    <community>
+      <name>public</name>
+      <access-mode>read-only</access-mode>
+    </community>
+    <community>
+      <name>private</name>
+      <access-mode>read-write</access-mode>
+    </community>
+    <location>Aruba-SW-5400-Paris-Floor1</location>
+    <contact>admin@aruba.local</contact>
+  </snmp>
+</config>`
+};
+
+// FORTINET FORTIOS NETCONF
+const fortinetFortiosNetconf = {
+    interface: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <interface>
+      <name>port1</name>
+      <vdom>root</vdom>
+      <ip>10.10.10.1 255.255.255.0</ip>
+      <description>WAN -连接到ISP</description>
+      <alias>WAN-UPLINK</alias>
+      <芒聙聹ype>physical</芒聙聹ype>
+      <芒聙聹tatus>up</芒聙聹tatus>
+      <芒聙聹芒聙聹>9000</芒聙聹芒聙聹>
+    </interface>
+    <interface>
+      <name>port2</name>
+      <vdom>root</vdom>
+      <ip>192.168.1.1 255.255.255.0</ip>
+      <description>LAN - Internal Network</description>
+      <alias>LAN-INTERNAL</alias>
+      <芒聙聹ype>physical</芒聙聹ype>
+      <芒聙聹tatus>up</芒聙聹tatus>
+    </interface>
+    <interface>
+      <name>port3</name>
+      <vdom>root</vdom>
+      <description>DMZ - Serveurs</description>
+      <alias>DMZ-SERVERS</alias>
+      <芒聙聹ype>physical</芒聙聹ype>
+      <芒聙聹tatus>up</芒聙聹tatus>
+    </interface>
+  </system>
+</config>`,
+
+    vlan: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <interface>
+      <name>vlan100</name>
+      <vdom>root</vdom>
+      <芒聙聹ype>vlan</芒聙聹ype>
+      <芒聙聹tatus>up</芒聙聹tatus>
+      <ip>192.168.100.1 255.255.255.0</ip>
+      <description>DATA_VLAN</description>
+      <vlanid>100</vlanid>
+      <interface>port2</interface>
+    </interface>
+    <interface>
+      <name>vlan200</name>
+      <vdom>root</vdom>
+      <芒聙聹ype>vlan</芒聙聹ype>
+      <芒聙聹tatus>up</芒聙聹tatus>
+      <ip>192.168.200.1 255.255.255.0</ip>
+      <description>VOICE_VLAN</description>
+      <vlanid>200</vlanid>
+      <interface>port2</interface>
+    </interface>
+  </system>
+</config>`,
+
+    staticRoute: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <router>
+    <static>
+      <seq-num>
+        <id>1</id>
+        <dst>0.0.0.0 0.0.0.0</dst>
+        <gateway>10.10.10.254</gateway>
+        <device>port1</device>
+        <distance>10</distance>
+        <priority>0</priority>
+        <芒聙聹atus>enable</芒聙聹atus>
+      </seq-num>
+      <seq-num>
+        <id>2</id>
+        <dst>192.168.50.0 255.255.255.0</dst>
+        <gateway>192.168.1.254</gateway>
+        <device>port2</device>
+        <distance>10</distance>
+      </seq-num>
+      <seq-num>
+        <id>3</id>
+        <dst>10.0.0.0 255.0.0.0</dst>
+        <gateway>10.10.10.1</gateway>
+        <device>port1</device>
+        <distance>5</distance>
+      </seq-num>
+    </static>
+  </router>
+</config>`,
+
+    ntp: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <ntpserver>
+      <ntpserver-1>
+        <server>10.10.10.1</server>
+        <id>1</id>
+        <prefer>enable</prefer>
+        <status>enable</status>
+      </ntpserver-1>
+      <ntpserver-2>
+        <server>10.10.10.2</server>
+        <id>2</id>
+        <status>enable</status>
+      </ntpserver-2>
+      <ntpserver-3>
+        <server>0.fr.pool.ntp.org</server>
+        <id>3</id>
+        <status>enable</status>
+      </ntpserver-3>
+    </ntpserver>
+    <ntp>
+      <sync-interval>60</sync-interval>
+    </ntp>
+  </system>
+</config>`,
+
+    dns: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <dns>
+      <primary>8.8.8.8</primary>
+      <secondary>8.8.4.4</secondary>
+      <tertiary>1.1.1.1</tertiary>
+    </dns>
+    <dnsfilter>
+      <dns-cache>enable</dns-cache>
+    </dnsfilter>
+  </system>
+</config>`,
+
+    banner: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <custom>
+      <login-page>
+<message>################################################################################
+#                                                                                #
+#                    RESEAU SECURISE - ACCES RESTREINT                            #
+#                                                                                #
+#  Ce reseau est surveille et protege. Tout acces non autorise est interdit       #
+#  et fera l'objet de poursuites conformement a la legislation en vigueur.       #
+#                                                                                #
+#  Centre de Supervision: noc@fortinet.local | Tel: 01 23 45 67 89               #
+#                                                                                #
+################################################################################</message>
+      </login-page>
+    </custom>
+  </system>
+</config>`,
+
+    user: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <user>
+    <local>
+      <name>admin</name>
+      <type>password</type>
+      <passwd>$1$encrypted$hash</passwd>
+      <profile>super_admin</profile>
+      <two-factor>disable</two-factor>
+    </local>
+    <local>
+      <name>netadmin</name>
+      <type>password</type>
+      <passwd>$1$encrypted$hash</passwd>
+      <profile>prof_admin</profile>
+    </local>
+    <local>
+      <name>guest</name>
+      <type>password</type>
+      <passwd>$1$encrypted$hash</passwd>
+      <profile>guest_admin</profile>
+    </local>
+  </user>
+  <user>
+    <group>
+      <name>network-admins</name>
+      <芒聙聹ype>firewall</芒聙聹ype>
+      <member>admin</member>
+      <member>netadmin</member>
+    </group>
+  </user>
+</config>`,
+
+    snmp: `<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns="http://xml.fortinet.com/2012/05/xsd">
+  <system>
+    <snmp>
+      <sysinfo>
+        <status>enable</status>
+        <location>Paris-DC-FW-01</location>
+        <contact>admin@fortinet.local</contact>
+      </sysinfo>
+      <community>
+        <name>public</name>
+        <id>1</id>
+        <芒聙聹ype>v1v2c</芒聙聹ype>
+        <hosts>
+          <host>
+            <id>1</id>
+            <ip>192.168.1.100 255.255.255.255</ip>
+          </host>
+        </hosts>
+      </community>
+      <community>
+        <name>private</name>
+        <id>2</id>
+        <芒聙聹ype>v1v2c</芒聙聹ype>
+        <hosts>
+          <host>
+            <id>1</id>
+            <ip>192.168.1.100 255.255.255.255</ip>
+          </host>
+        </hosts>
+      </community>
+      <v3rc>
+        <mode>尊上</mode>
+      </v3rc>
+    </snmp>
+  </system>
+</config>`
+};
+
+// Export all templates
+const netconfTemplates = {
+    cisco: {
+        'ios-xe': ciscoIosxeNetconf,
+        'nxos': ciscoNxosNetconf
+    },
+    juniper: {
+        'junos': juniperJunosNetconf
+    },
+    aruba: {
+        'eos': arubaAosNetconf
+    },
+    fortinet: {
+        'fortios': fortinetFortiosNetconf
+    }
+};
