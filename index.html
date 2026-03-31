@@ -16,6 +16,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="templates.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -122,6 +123,10 @@
                 <button onclick="showSection('history')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all border-l-4 border-transparent hover:bg-slate-700/50" data-section="history">
                     <i data-lucide="history" class="w-5 h-5 text-slate-400"></i>
                     <span class="text-slate-200 font-medium">Historique</span>
+                </button>
+                <button onclick="showSection('templates')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all border-l-4 border-transparent hover:bg-slate-700/50" data-section="templates">
+                    <i data-lucide="layout-template" class="w-5 h-5 text-slate-400"></i>
+                    <span class="text-slate-200 font-medium">Templates</span>
                 </button>
             </div>
             <div class="mt-auto p-4 border-t border-slate-700">
@@ -450,6 +455,33 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Templates Section -->
+            <section id="section-templates" class="section hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Templates de Configuration</h2>
+                    <button onclick="openCreateTemplateModal()" class="deploy-gradient px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-opacity">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        Nouveau Template
+                    </button>
+                </div>
+
+                <!-- Vendor Filter -->
+                <div class="flex flex-wrap gap-2 mb-6">
+                    <button onclick="filterTemplatesByVendor('all')" class="template-filter-btn active px-4 py-2 rounded-lg text-sm font-medium bg-blue-500/20 text-blue-400 border border-blue-500/50 transition-all" data-vendor="all">Tous</button>
+                    <button onclick="filterTemplatesByVendor('cisco')" class="template-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all" data-vendor="cisco">Cisco</button>
+                    <button onclick="filterTemplatesByVendor('juniper')" class="template-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all" data-vendor="juniper">Juniper</button>
+                    <button onclick="filterTemplatesByVendor('aruba')" class="template-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all" data-vendor="aruba">Aruba</button>
+                    <button onclick="filterTemplatesByVendor('fortinet')" class="template-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all" data-vendor="fortinet">Fortinet</button>
+                    <button onclick="filterTemplatesByVendor('mikrotik')" class="template-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all" data-vendor="mikrotik">MikroTik</button>
+                    <button onclick="filterTemplatesByVendor('paloalto')" class="template-filter-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-700/50 text-slate-400 border border-slate-600 hover:bg-slate-700 transition-all" data-vendor="paloalto">Palo Alto</button>
+                </div>
+
+                <!-- Templates Grid -->
+                <div id="templatesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Templates will be rendered here -->
+                </div>
+            </section>
         </main>
     </div>
 
@@ -575,6 +607,31 @@
         </div>
     </div>
 
+    <!-- Template Detail Modal -->
+    <div id="templateDetailModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 modal-backdrop" onclick="closeTemplateDetailModal()"></div>
+        <div class="relative bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-2xl fade-in shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+                <h3 class="text-lg font-semibold text-white" id="templateDetailTitle">Détails du Template</h3>
+                <button onclick="closeTemplateDetailModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-auto flex-1" id="templateDetailContent">
+                <!-- Dynamic content -->
+            </div>
+            <div class="p-6 border-t border-slate-700 flex justify-end gap-3 flex-shrink-0">
+                <button onclick="closeTemplateDetailModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors">
+                    Fermer
+                </button>
+                <button id="templateDetailUseBtn" class="deploy-gradient px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity flex items-center gap-2">
+                    <i data-lucide="play" class="w-4 h-4"></i>
+                    Utiliser ce Template
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toastContainer" class="fixed top-20 right-4 z-50 space-y-2 max-w-sm"></div>
 
@@ -589,75 +646,132 @@
         let selectedDeployEquipments = [];
         let currentHistoryItem = null;
 
-        // Templates
-        const templates = {
-            cisco_vlan: `<config target="router-01" host="192.168.1.1" os="ios" user="admin" password="password">
-  <vlan id="100">
-    <name>CLIENT_VLAN</name>
-    <state>present</state>
-  </vlan>
-</config>`,
-            cisco_interface: `<config target="switch-01" host="192.168.1.10" os="ios" user="admin" password="password">
-  <interface name="GigabitEthernet0/0">
-    <description>Uplink to Core</description>
-    <ip>10.0.0.1</ip>
-    <mask>255.255.255.0</mask>
-    <enabled>true</enabled>
-  </interface>
-</config>`,
-            cisco_bgp: `<config target="router-01" host="192.168.1.1" os="ios" user="admin" password="password">
-  <bgp as="65001">
-    <neighbor ip="192.168.1.2" remote-as="65002">
-      <description>Peer EBGP</description>
-    </neighbor>
-  </bgp>
-</config>`,
-            cisco_ospf: `<config target="router-01" host="192.168.1.1" os="ios" user="admin" password="password">
-  <ospf process-id="1">
-    <area id="0">
-      <network>10.0.0.0</network>
-      <wildcard>0.0.0.255</wildcard>
-    </area>
-  </ospf>
-</config>`,
-            juniper_vlan: `<config target="switch-01" host="192.168.2.1" os="junos" user="admin" password="password">
-  <vlan id="200">
-    <name>DATA_VLAN</name>
-    <description>Data VLAN</description>
-  </vlan>
-</config>`,
-            juniper_interface: `<config target="switch-01" host="192.168.2.1" os="junos" user="admin" password="password">
-  <interface name="ge-0/0/0">
-    <description>Server Port</description>
-    <unit>
-      <number>0</number>
-      <family>
-        <inet>
-          <address>10.1.0.1/24</address>
-        </inet>
-      </family>
-    </unit>
-  </interface>
-</config>`,
-            aruba_vlan: `<config target="switch-aruba" host="192.168.3.1" os="eos" user="admin" password="password">
-  <vlan id="300">
-    <name>VOICE_VLAN</name>
-  </vlan>
-</config>`,
-            fortinet_interface: `<config target="fortigate-01" host="192.168.4.1" os="fortios" user="admin" password="password">
-  <interface name="port1">
-    <ip>10.100.0.1</ip>
-    <mask>255.255.255.0</mask>
-    <description>WAN Interface</description>
-  </interface>
-</config>`
-        };
+        // Templates are defined in templates.js
+
+        // Template Functions
+        let currentVendorFilter = 'all';
+
+        function filterTemplatesByVendor(vendor) {
+            currentVendorFilter = vendor;
+            document.querySelectorAll('.template-filter-btn').forEach(btn => {
+                if (btn.dataset.vendor === vendor) {
+                    btn.classList.add('bg-blue-500/20', 'text-blue-400', 'border-blue-500/50');
+                    btn.classList.remove('bg-slate-700/50', 'text-slate-400', 'border-slate-600');
+                } else {
+                    btn.classList.remove('bg-blue-500/20', 'text-blue-400', 'border-blue-500/50');
+                    btn.classList.add('bg-slate-700/50', 'text-slate-400', 'border-slate-600');
+                }
+            });
+            renderTemplates();
+        }
+
+        function renderTemplates() {
+            const grid = document.getElementById('templatesGrid');
+            const templates = getTemplatesByVendor(currentVendorFilter);
+            
+            if (templates.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center text-slate-500 py-12">
+                        <i data-lucide="package-x" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+                        <p class="text-lg">Aucun template disponible</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+            
+            grid.innerHTML = templates.map(t => {
+                const colors = getVendorColor(t.vendor);
+                return `
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700 p-5 card-hover transition-all">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 ${colors.bg} rounded-lg flex items-center justify-center">
+                                <i data-lucide="${t.icon || 'file-code'}" class="w-5 h-5 ${colors.text}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-white">${t.name}</h4>
+                                <span class="text-xs ${colors.text} uppercase">${t.vendor}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-4">${t.description}</p>
+                    <div class="flex items-center gap-2">
+                        <button onclick="useTemplate('${t.id}')" class="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                            Utiliser
+                        </button>
+                        <button onclick="viewTemplateDetail('${t.id}')" class="px-3 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-sm transition-colors">
+                            <i data-lucide="eye" class="w-4 h-4 text-slate-400"></i>
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function useTemplate(templateId) {
+            const template = getTemplateById(templateId);
+            if (template && editor) {
+                editor.setValue(template.xml);
+                showSection('editor');
+                showToast(`Template "${template.name}" chargé`, 'success');
+            }
+        }
+
+        function viewTemplateDetail(templateId) {
+            const template = getTemplateById(templateId);
+            if (!template) return;
+            
+            const colors = getVendorColor(template.vendor);
+            document.getElementById('templateDetailTitle').textContent = template.name;
+            document.getElementById('templateDetailContent').innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 ${colors.bg} rounded-lg flex items-center justify-center">
+                            <i data-lucide="${template.icon || 'file-code'}" class="w-6 h-6 ${colors.text}"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white">${template.name}</h4>
+                            <span class="text-sm ${colors.text}">${template.vendor} - ${template.category}</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-400">${template.description}</p>
+                    <div>
+                        <p class="text-sm text-slate-400 mb-2">Code XML</p>
+                        <div class="bg-slate-700/30 rounded-lg p-3 font-mono text-xs overflow-auto max-h-64">
+                            <pre class="text-slate-300 whitespace-pre-wrap">${escapeHtml(template.xml)}</pre>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('templateDetailModal').classList.remove('hidden');
+            document.getElementById('templateDetailUseBtn').onclick = () => {
+                closeTemplateDetailModal();
+                useTemplate(templateId);
+            };
+            lucide.createIcons();
+        }
+
+        function closeTemplateDetailModal() {
+            document.getElementById('templateDetailModal').classList.add('hidden');
+        }
+
+        function openCreateTemplateModal() {
+            showToast('Fonctionnalité à venir - créez vos templates via l\'éditeur', 'info');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initEditor();
             loadEquipment();
             loadHistory();
+            renderTemplates();
             updateTime();
             setInterval(updateTime, 1000);
             lucide.createIcons();
