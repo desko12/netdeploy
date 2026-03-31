@@ -858,6 +858,49 @@
             showToast('Fonctionnalité à venir - créez vos templates via l\'éditeur', 'info');
         }
 
+        function populateTemplateDropdown() {
+            const select = document.getElementById('templateSelect');
+            select.innerHTML = '<option value="">-- Choisir un template --</option>';
+            
+            const vendors = ['cisco', 'juniper', 'aruba', 'fortinet', 'mikrotik', 'paloalto', 'generic'];
+            const vendorNames = {
+                cisco: 'Cisco',
+                juniper: 'Juniper',
+                aruba: 'Aruba',
+                fortinet: 'Fortinet',
+                mikrotik: 'MikroTik',
+                paloalto: 'Palo Alto',
+                generic: 'Generic'
+            };
+            
+            vendors.forEach(vendor => {
+                const vendorTemplates = getTemplatesByVendor(vendor);
+                if (vendorTemplates.length > 0) {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = vendorNames[vendor] || vendor;
+                    vendorTemplates.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.textContent = t.name;
+                        optgroup.appendChild(opt);
+                    });
+                    select.appendChild(optgroup);
+                }
+            });
+        }
+
+        function loadTemplate() {
+            const templateKey = document.getElementById('templateSelect').value;
+            if (templateKey) {
+                const template = getTemplateById(templateKey);
+                if (template && editor) {
+                    editor.setValue(template.xml);
+                    document.getElementById('editorFileName').textContent = `${template.name}.xml`;
+                    showToast(`Template "${template.name}" chargé`, 'success');
+                }
+            }
+        }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
@@ -870,6 +913,7 @@
             loadEquipment();
             loadHistory();
             renderTemplates();
+            populateTemplateDropdown();
             updateTime();
             setInterval(updateTime, 1000);
             lucide.createIcons();
@@ -1013,15 +1057,6 @@
                 messageEl.className = 'text-sm text-red-400';
                 lucide.createIcons();
                 return false;
-            }
-        }
-
-        function loadTemplate() {
-            const templateKey = document.getElementById('templateSelect').value;
-            if (templateKey && templates[templateKey]) {
-                editor.setValue(templates[templateKey]);
-                document.getElementById('editorFileName').textContent = `${templateKey}.xml`;
-                showToast('Template chargé', 'success');
             }
         }
 
