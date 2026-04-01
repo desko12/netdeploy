@@ -3,6 +3,8 @@ import json
 import subprocess
 import os
 import sys
+import threading
+from datetime import datetime
 from xml.etree import ElementTree as ET
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
@@ -11,10 +13,29 @@ import yaml
 WORK_DIR = '/tmp/netdeploy'
 os.makedirs(WORK_DIR, exist_ok=True)
 
+logs_lock = threading.Lock()
+logs = []
+MAX_LOGS = 1000
+
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in separate threads"""
 
 HTML = open('index.html').read()
+
+def log(level, message, details=None):
+    """Add a log entry"""
+    global logs
+    entry = {
+        'timestamp': datetime.now().isoformat(),
+        'level': level,
+        'message': message,
+        'details': details
+    }
+    with logs_lock:
+        logs.append(entry)
+        if len(logs) > MAX_LOGS:
+            logs = logs[-MAX_LOGS:]
+    return entry
 
 def parse_xml(xml_string):
     try:
@@ -41,7 +62,7 @@ def parse_xml(xml_string):
             'elements': []
         }
         
-        supported = ['interface', 'vlan', 'bgp', 'ospf', 'network']
+        supported = ['interface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp']
         
         for elem in config_el:
             if elem.tag not in supported:
@@ -73,14 +94,13 @@ def generate_inventory(configs):
         if os_name not in inventory['all']['children']:
             inventory['all']['children'][os_name] = {'hosts': {}}
         
-        # SSH options to handle older Cisco IOS devices
         inventory['all']['children'][os_name]['hosts'][config['target']] = {
             'ansible_host': config['host'],
             'ansible_user': config['user'],
             'ansible_password': config['password'],
             'ansible_connection': 'network_cli',
             'ansible_network_os': os_name,
-            'ansible_ssh_common_args': '-o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no',
+            'ansible_ssh_common_args': '-o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null',
             'ansible_ssh_pass': config['password'],
         }
     
@@ -108,19 +128,16 @@ def generate_playbook(configs):
                 elif config['os'] == 'nxos':
                     task['nxos_interfaces'] = {'config': [{'name': name, 'enabled': state == 'present'}], 'state': state}
                 elif config['os'] == 'ios':
-                    task['ios_l2_interfaces'] = {'config': [{'name': name, 'mode': 'access'}], 'state': state}
+                    task['ios_interfaces'] = {'config': [{'name': name, 'description': elem['attrs'].get('description', ''), 'enabled': state == 'present'}], 'state': state}
+                elif config['os'] == 'junos':
+                    task['junos_interfaces'] = {'interfaces': [{'name': name, 'enabled': state == 'present'}]}
             
             elif elem['type'] == 'vlan':
                 vlan_id = int(elem['attrs'].get('id'))
                 vlan_name = next((c['text'] for c in elem['children'] if c['tag'] == 'name'), '')
                 xml_state = next((c['text'] for c in elem['children'] if c['tag'] == 'state'), 'present')
                 
-                # Map state for different OS
-                state_map = {
-                    'eos': 'present',
-                    'nxos': 'present',
-                    'ios': 'merged'  # Cisco IOS uses merged/replaced/deleted
-                }
+                state_map = {'eos': 'present', 'nxos': 'present', 'ios': 'merged', 'junos': 'present'}
                 state = state_map.get(config['os'], 'present')
                 
                 if config['os'] == 'eos':
@@ -129,6 +146,8 @@ def generate_playbook(configs):
                     task['nxos_vlans'] = {'config': [{'vlan_id': vlan_id, 'name': vlan_name}], 'state': state}
                 elif config['os'] == 'ios':
                     task['ios_vlans'] = {'config': [{'vlan_id': vlan_id, 'name': vlan_name}], 'state': state}
+                elif config['os'] == 'junos':
+                    task['junos_vlans'] = {'vlans': [{'name': vlan_name, 'vlan_id': str(vlan_id)}]}
             
             elif elem['type'] == 'bgp':
                 asn = int(elem['attrs'].get('as'))
@@ -150,28 +169,57 @@ def generate_playbook(configs):
                         ]}],
                         'state': 'present'
                     }
+                elif config['os'] == 'ios':
+                    task['ios_bgp'] = {
+                        'config': [{'asn': asn, 'neighbors': [
+                            {'neighbor': n['ip'], 'remote_as': int(n.get('remote-as', 0))}
+                            for n in neighbors
+                        ]}],
+                        'state': 'present'
+                    }
+            
+            elif elem['type'] == 'ospf':
+                process_id = elem['attrs'].get('process-id', '1')
+                if config['os'] == 'ios':
+                    task['ios_ospf'] = {'process_id': int(process_id), 'state': 'present'}
             
             if len(task) >= 2:
                 tasks.append(task)
     
-    return yaml.dump([{'name': 'Network Configuration Deployment', 'hosts': 'all', 'gather_facts': False, 'tasks': tasks}], default_flow_style=False, sort_keys=False)
+    if not tasks:
+        tasks.append({'name': 'No configuration tasks generated', 'debug': configs})
+    
+    return yaml.dump([{
+        'name': 'Network Configuration Deployment',
+        'hosts': 'all',
+        'gather_facts': False,
+        'tasks': tasks
+    }], default_flow_style=False, sort_keys=False)
 
-def run_ansible_playbook(inventory_content, playbook_content):
+def run_ansible_playbook(inventory_content, playbook_content, deployment_id=None):
+    logs_list = []
+    
     try:
+        log('INFO', 'Ecriture du fichier inventory Ansible', {'file': f'{WORK_DIR}/inventory.json'})
+        
         with open(f'{WORK_DIR}/inventory.json', 'w') as f:
             f.write(inventory_content)
         
         with open(f'{WORK_DIR}/deploy.yml', 'w') as f:
             f.write(playbook_content)
         
-        # Create ansible.cfg to disable host key checking
+        log('INFO', 'Fichiers de configuration Ansible crees')
+        
         ansible_cfg = """[defaults]
 host_key_checking = False
 inventory = /tmp/netdeploy/inventory.json
 retry_files_enabled = False
+timeout = 60
 """
         with open(f'{WORK_DIR}/ansible.cfg', 'w') as f:
             f.write(ansible_cfg)
+        
+        log('INFO', 'Execution du playbook Ansible...')
         
         result = subprocess.run(
             ['ansible-playbook', '-i', f'{WORK_DIR}/inventory.json', f'{WORK_DIR}/deploy.yml', '-v', '--timeout', '60'],
@@ -182,24 +230,45 @@ retry_files_enabled = False
         )
         
         if result.returncode == 0:
-            return {'success': True, 'output': result.stdout}
+            log('SUCCESS', 'Playbook Ansible execute avec succes')
+            return {'success': True, 'output': result.stdout, 'logs': logs_list}
         else:
-            return {'success': False, 'error': result.stderr, 'output': result.stdout}
+            log('ERROR', 'Playbook Ansible a echoue', {'stderr': result.stderr[:1000], 'stdout': result.stdout[-1000:]})
+            return {'success': False, 'error': result.stderr, 'output': result.stdout, 'logs': logs_list}
             
     except subprocess.TimeoutExpired:
-        return {'success': False, 'error': 'Deployment timeout (5 minutes)'}
+        log('ERROR', 'Timeout - Le playbook a depasse le temps limite (5 minutes)')
+        return {'success': False, 'error': 'Deployment timeout (5 minutes)', 'logs': logs_list}
     except FileNotFoundError:
-        return {'success': False, 'error': 'Ansible not installed. Please install ansible in the container.'}
+        log('ERROR', 'Ansible non installe dans le container')
+        return {'success': False, 'error': 'Ansible not installed. Please install ansible in the container.', 'logs': logs_list}
     except Exception as e:
-        return {'success': False, 'error': str(e)}
+        log('ERROR', f'Exception lors du deploiement: {str(e)}')
+        return {'success': False, 'error': str(e), 'logs': logs_list}
 
 class Handler(SimpleHTTPRequestHandler):
+    def log_message(self, format, *args):
+        pass
+    
     def do_GET(self):
         if self.path == '/' or self.path == '/index.html':
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(HTML.encode())
+        elif self.path == '/api/logs':
+            with logs_lock:
+                response = {'logs': logs, 'count': len(logs)}
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode())
+        elif self.path == '/api/health':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'status': 'ok', 'timestamp': datetime.now().isoformat()}).encode())
         else:
             super().do_GET()
     
@@ -210,8 +279,12 @@ class Handler(SimpleHTTPRequestHandler):
             data = json.loads(body)
             
             xml = data.get('config', '')
+            deployment_id = data.get('deployment_id', datetime.now().isoformat())
+            
+            log('INFO', f'Deploiement demande - ID: {deployment_id}', {'config_length': len(xml)})
             
             if not xml:
+                log('ERROR', 'Aucune configuration fournie')
                 self.send_response(400)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
@@ -219,15 +292,28 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             
             try:
+                log('INFO', 'Analyse de la configuration XML')
                 configs = parse_xml(xml)
                 
                 if not configs:
+                    log('ERROR', 'Aucun element de configuration valide trouve')
                     raise ValueError('No valid config elements found')
                 
+                log('INFO', f'{len(configs)} configuration(s) extraite(s)', {'configs': [c['target'] for c in configs]})
+                
+                log('INFO', 'Generation de l inventory Ansible')
                 inventory = generate_inventory(configs)
+                
+                log('INFO', 'Generation du playbook Ansible')
                 playbook = generate_playbook(configs)
                 
-                result = run_ansible_playbook(inventory, playbook)
+                log('INFO', 'Demarrage du deploiement sur les equipements')
+                result = run_ansible_playbook(inventory, playbook, deployment_id)
+                
+                if result['success']:
+                    log('SUCCESS', f'Deploiement reussi - {len(configs)} equipement(s)')
+                else:
+                    log('ERROR', f'Deploiement echoue: {result.get("error", "Erreur inconnue")}')
                 
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -235,23 +321,40 @@ class Handler(SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps(result).encode())
                 
             except ET.ParseError as e:
+                log('ERROR', f'XML invalide: {str(e)}')
                 self.send_response(400)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': 'Invalid XML: ' + str(e)}).encode())
             except Exception as e:
+                log('ERROR', f'Erreur serveur: {str(e)}')
                 self.send_response(500)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({'error': str(e)}).encode())
+        
+        elif self.path == '/api/logs/clear':
+            global logs
+            with logs_lock:
+                logs = []
+            log('INFO', 'Logs effaces')
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'status': 'cleared'}).encode())
+        
         else:
             self.send_response(404)
             self.end_headers()
 
 PORT = int(os.environ.get('PORT', 3000))
+log('INFO', f'Demarrage du serveur NetDeploy sur http://localhost:{PORT}')
+
 print(f"Starting NetDeploy server on http://localhost:{PORT}")
 print(f"Ansible version: ", end="")
 sys.stdout.flush()
 subprocess.run(['ansible-playbook', '--version'], stdout=sys.stdout, stderr=subprocess.STDOUT)
+
+log('INFO', 'Serveur pret')
 server = ThreadedHTTPServer(('0.0.0.0', PORT), Handler)
 server.serve_forever()

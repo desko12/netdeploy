@@ -132,6 +132,10 @@
                     <i data-lucide="folder-check" class="w-5 h-5 text-slate-400"></i>
                     <span class="text-slate-200 font-medium">Mes Configs</span>
                 </button>
+                <button onclick="showSection('logs')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all border-l-4 border-transparent hover:bg-slate-700/50" data-section="logs">
+                    <i data-lucide="terminal" class="w-5 h-5 text-slate-400"></i>
+                    <span class="text-slate-200 font-medium">Logs</span>
+                </button>
             </div>
             <div class="mt-auto p-4 border-t border-slate-700">
                 <div class="text-xs text-slate-500 text-center">NetDeploy v2.1</div>
@@ -506,6 +510,58 @@
                 <!-- Saved Configs Grid -->
                 <div id="savedConfigsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Saved configs will be rendered here -->
+                </div>
+            </section>
+
+            <!-- Logs Section -->
+            <section id="section-logs" class="section hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-white">Logs de Deploiement</h2>
+                    <div class="flex items-center gap-3">
+                        <button onclick="refreshLogs()" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            Actualiser
+                        </button>
+                        <button onclick="clearLogs()" class="bg-red-600/20 hover:bg-red-600/30 text-red-400 px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            Effacer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Auto-refresh toggle -->
+                <div class="flex items-center gap-4 mb-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="autoRefreshLogs" class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500" checked>
+                        <span class="text-sm text-slate-300">Actualisation automatique</span>
+                    </label>
+                    <span class="text-xs text-slate-500" id="logCount">0 log(s)</span>
+                </div>
+
+                <!-- Logs Container -->
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
+                    <div class="p-3 border-b border-slate-700 bg-slate-800/80 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-4 h-4 text-slate-400"></i>
+                            <span class="text-sm text-slate-300 font-mono">Console</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="logLevelFilter" onchange="filterLogs()" class="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-xs">
+                                <option value="all">Tous les niveaux</option>
+                                <option value="INFO">INFO</option>
+                                <option value="SUCCESS">SUCCESS</option>
+                                <option value="WARNING">WARNING</option>
+                                <option value="ERROR">ERROR</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="logsContainer" class="h-[calc(100vh-320px)] overflow-auto p-4 font-mono text-sm">
+                        <div class="text-slate-500 text-center py-8">
+                            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                            <p>Aucun log disponible</p>
+                            <p class="text-xs mt-1">Les logs de deploiement apparaîtront ici</p>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
@@ -991,7 +1047,134 @@
             if (section === 'configs') {
                 renderSavedConfigs();
             }
+            if (section === 'logs') {
+                refreshLogs();
+            }
         }
+
+        // Logs Functions
+        let logsRefreshInterval = null;
+        let currentLogs = [];
+
+        async function refreshLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const data = await response.json();
+                currentLogs = data.logs || [];
+                renderLogs();
+                
+                document.getElementById('logCount').textContent = `${currentLogs.length} log(s)`;
+            } catch (e) {
+                console.error('Error fetching logs:', e);
+            }
+        }
+
+        function filterLogs() {
+            renderLogs();
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logsContainer');
+            const levelFilter = document.getElementById('logLevelFilter').value;
+            
+            let filteredLogs = currentLogs;
+            if (levelFilter !== 'all') {
+                filteredLogs = currentLogs.filter(l => l.level === levelFilter);
+            }
+            
+            if (filteredLogs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-slate-500 text-center py-8">
+                        <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-30"></i>
+                        <p>Aucun log disponible</p>
+                        <p class="text-xs mt-1">Les logs de deploiement apparaîtront ici</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+            
+            container.innerHTML = filteredLogs.map(log => {
+                const timestamp = new Date(log.timestamp).toLocaleTimeString('fr-FR');
+                let levelClass = 'text-slate-400';
+                let levelBg = 'bg-slate-700';
+                let icon = 'info';
+                
+                if (log.level === 'INFO') {
+                    levelClass = 'text-blue-400';
+                    levelBg = 'bg-blue-500/20';
+                    icon = 'info';
+                } else if (log.level === 'SUCCESS') {
+                    levelClass = 'text-green-400';
+                    levelBg = 'bg-green-500/20';
+                    icon = 'check-circle';
+                } else if (log.level === 'WARNING') {
+                    levelClass = 'text-amber-400';
+                    levelBg = 'bg-amber-500/20';
+                    icon = 'alert-triangle';
+                } else if (log.level === 'ERROR') {
+                    levelClass = 'text-red-400';
+                    levelBg = 'bg-red-500/20';
+                    icon = 'x-circle';
+                }
+                
+                const details = log.details ? `<pre class="mt-2 p-2 bg-slate-900/50 rounded text-xs text-slate-400 overflow-auto max-h-32">${JSON.stringify(log.details, null, 2)}</pre>` : '';
+                
+                return `
+                <div class="mb-2 p-3 rounded-lg bg-slate-800/50 border border-slate-700 hover:border-slate-600 transition-colors">
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 ${levelBg} rounded flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i data-lucide="${icon}" class="w-4 h-4 ${levelClass}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs text-slate-500 font-mono">${timestamp}</span>
+                                <span class="px-2 py-0.5 ${levelBg} rounded text-xs font-medium ${levelClass}">${log.level}</span>
+                            </div>
+                            <p class="text-slate-200 text-sm">${log.message}</p>
+                            ${details}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            
+            lucide.createIcons();
+            
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function clearLogs() {
+            if (!confirm('Effacer tous les logs ?')) return;
+            
+            try {
+                await fetch('/api/logs/clear', { method: 'POST' });
+                currentLogs = [];
+                renderLogs();
+                document.getElementById('logCount').textContent = '0 log(s)';
+                showToast('Logs effaces', 'success');
+            } catch (e) {
+                showToast('Erreur lors de l\'effacement des logs', 'error');
+            }
+        }
+
+        function startLogsAutoRefresh() {
+            if (logsRefreshInterval) return;
+            logsRefreshInterval = setInterval(() => {
+                if (document.getElementById('autoRefreshLogs').checked) {
+                    refreshLogs();
+                }
+            }, 2000);
+        }
+
+        function stopLogsAutoRefresh() {
+            if (logsRefreshInterval) {
+                clearInterval(logsRefreshInterval);
+                logsRefreshInterval = null;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            startLogsAutoRefresh();
+        });
 
         // Toast notifications
         function showToast(message, type = 'info') {
@@ -1545,6 +1728,9 @@
             const xmlContent = document.getElementById('quickXmlInput').value;
             const targets = selectedDeployEquipments.map(i => equipment[i]);
             
+            refreshLogs();
+            document.getElementById('autoRefreshLogs').checked = true;
+            
             // Show progress
             document.getElementById('deploymentProgress').classList.remove('hidden');
             const resultsContainer = document.getElementById('deploymentResults');
@@ -1646,6 +1832,7 @@
             saveHistoryList();
             
             updateStats();
+            refreshLogs();
             showToast(`Déploiement terminé: ${successCount}/${targets.length} réussis`, successCount > 0 ? 'success' : 'error');
             
             // Reset
