@@ -80,7 +80,10 @@ curl -X POST http://localhost:8000/api/vlans/1/apply
 
 ## Versions
 
-### v2.1.29 (Current)
+### v2.1.30 (Current)
+- Add playbook handlers for banner, user, ntp, dns, snmp elements (previously only parsed but not generated)
+
+### v2.1.29
 - Fix SSH host key verification error for paramiko connections
 - Add ANSIBLE_HOST_KEY_CHECKING and ANSIBLE_PARAMIKO_HOST_KEY_AUTO_ADD environment variables
 - Add additional paramiko connection settings (look_for_keys, strict_host_key_checking, record_host_keys)

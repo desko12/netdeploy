@@ -275,6 +275,37 @@ def generate_playbook(configs):
                 if config['os'] == 'ios':
                     task['ios_ospf'] = {'process_id': int(process_id), 'state': 'present'}
             
+            elif elem['type'] == 'banner':
+                motd = next((c['text'] for c in elem['children'] if c['tag'] == 'motd'), '')
+                if motd and config['os'] == 'ios':
+                    task['ios_banner'] = {'banner': 'motd', 'text': motd, 'state': 'present'}
+            
+            elif elem['type'] == 'user':
+                user_name = elem['attrs'].get('name', '')
+                user_pass = next((c['text'] for c in elem['children'] if c['tag'] == 'password'), '')
+                privilege = next((c['text'] for c in elem['children'] if c['tag'] == 'privilege'), '15')
+                if user_name and config['os'] == 'ios':
+                    task['ios_user'] = {'name': user_name, 'password': user_pass, 'privilege': int(privilege), 'state': 'present'}
+            
+            elif elem['type'] == 'ntp':
+                servers = [c['text'] for c in elem['children'] if c['tag'] == 'server' and c['text']]
+                if servers and config['os'] == 'ios':
+                    task['ios_ntp'] = {'server': servers, 'state': 'present'}
+            
+            elif elem['type'] == 'dns':
+                servers = [c['text'] for c in elem['children'] if c['tag'] == 'server' and c['text']]
+                domain = next((c['text'] for c in elem['children'] if c['tag'] == 'domain'), '')
+                if servers and config['os'] == 'ios':
+                    task['ios_static'] = {'dns': {'server': servers, 'domain_name': domain}}
+            
+            elif elem['type'] == 'snmp':
+                location = next((c['text'] for c in elem['children'] if c['tag'] == 'location'), '')
+                contact = next((c['text'] for c in elem['children'] if c['tag'] == 'contact'), '')
+                communities = [{'name': c['attrs'].get('name', ''), 'group': c['attrs'].get('permission', 'ro')} 
+                               for c in elem['children'] if c['type'] == 'element' and c['attrs'].get('name')]
+                if config['os'] == 'ios':
+                    task['ios_snmp'] = {'location': location, 'contact': contact, 'community': communities}
+            
             if len(task) >= 2:
                 tasks.append(task)
     
