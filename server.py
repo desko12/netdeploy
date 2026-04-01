@@ -308,9 +308,12 @@ inventory = /tmp/netdeploy/inventory.json
 retry_files_enabled = False
 timeout = 60
 deprecation_warnings = False
+record_host_keys = False
 
 [paramiko_connection]
 host_key_auto_add = True
+look_for_keys = False
+strict_host_key_checking = False
 
 [ssh_connection]
 ssh_args = -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PreferredAuthentications=password -o PubkeyAuthentication=no
@@ -320,12 +323,18 @@ ssh_args = -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o Prefer
         
         log('INFO', 'Execution du playbook Ansible...')
         
+        env = {
+            **os.environ,
+            'ANSIBLE_CONFIG': f'{WORK_DIR}/ansible.cfg',
+            'ANSIBLE_HOST_KEY_CHECKING': 'False',
+            'ANSIBLE_PARAMIKO_HOST_KEY_AUTO_ADD': 'True'
+        }
         result = subprocess.run(
             ['ansible-playbook', '-i', f'{WORK_DIR}/inventory.json', f'{WORK_DIR}/deploy.yml', '-v', '--timeout', '60'],
             capture_output=True,
             text=True,
             timeout=300,
-            env={**os.environ, 'ANSIBLE_CONFIG': f'{WORK_DIR}/ansible.cfg'}
+            env=env
         )
         
         if result.returncode == 0:

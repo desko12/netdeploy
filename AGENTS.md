@@ -80,7 +80,12 @@ curl -X POST http://localhost:8000/api/vlans/1/apply
 
 ## Versions
 
-### v2.1.28 (Current)
+### v2.1.29 (Current)
+- Fix SSH host key verification error for paramiko connections
+- Add ANSIBLE_HOST_KEY_CHECKING and ANSIBLE_PARAMIKO_HOST_KEY_AUTO_ADD environment variables
+- Add additional paramiko connection settings (look_for_keys, strict_host_key_checking, record_host_keys)
+
+### v2.1.28
 - Added 10 default XML configurations:
   - VLAN Creation
   - Access Port
