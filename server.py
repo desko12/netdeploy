@@ -127,6 +127,7 @@ def generate_inventory(configs):
                 'ansible_user': 'admin',
                 'ansible_password': 'admin',
                 'ansible_connection': 'network_cli',
+                'ansible_network_os': 'ios',
             }
         }
     }
@@ -140,7 +141,6 @@ def generate_inventory(configs):
             'ansible_host': config['host'],
             'ansible_user': config['user'],
             'ansible_password': config['password'],
-            'ansible_connection': 'network_cli',
             'ansible_network_os': os_name,
         }
     
@@ -167,21 +167,22 @@ def generate_playbook(configs):
                 
                 if mode in ['trunk', 'access']:
                     if config['os'] == 'ios':
-                        l2_config = {'name': name}
+                        lines = []
                         if mode == 'trunk':
-                            l2_config['mode'] = 'trunk'
+                            lines.append('switchport trunk encapsulation dot1q')
+                            lines.append('switchport mode trunk')
                             allowed_vlans = elem['attrs'].get('allowed-vlans', '')
                             if allowed_vlans:
-                                l2_config['trunk_vlans'] = [v.strip() for v in allowed_vlans.split(',')]
+                                lines.append(f'switchport trunk allowed vlan {allowed_vlans}')
                             native_vlan = elem['attrs'].get('native-vlan', '')
                             if native_vlan:
-                                l2_config['native_vlan'] = int(native_vlan)
+                                lines.append(f'switchport trunk native vlan {native_vlan}')
                         else:
-                            l2_config['mode'] = 'access'
+                            lines.append('switchport mode access')
                             vlan_elem = next((c['text'] for c in elem['children'] if c['tag'] == 'vlan'), None)
                             if vlan_elem:
-                                l2_config['access_vlan'] = int(vlan_elem)
-                        task['ios_l2_interfaces'] = {'config': [l2_config], 'state': mapped_state}
+                                lines.append(f'switchport access vlan {vlan_elem}')
+                        task['ios_config'] = {'lines': lines, 'parents': [f'interface {name}']}
                     elif config['os'] == 'nxos':
                         l2_config = {'name': name}
                         if mode == 'trunk':
@@ -366,6 +367,7 @@ strict_host_key_checking = False
 
 [ssh_connection]
 ssh_args = -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PreferredAuthentications=password -o PubkeyAuthentication=no
+pipelining = True
 """
         with open(f'{WORK_DIR}/ansible.cfg', 'w') as f:
             f.write(ansible_cfg)
@@ -376,7 +378,8 @@ ssh_args = -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o Prefer
             **os.environ,
             'ANSIBLE_CONFIG': f'{WORK_DIR}/ansible.cfg',
             'ANSIBLE_HOST_KEY_CHECKING': 'False',
-            'ANSIBLE_PARAMIKO_HOST_KEY_AUTO_ADD': 'True'
+            'ANSIBLE_PARAMIKO_HOST_KEY_AUTO_ADD': 'True',
+            'ANSIBLE_PREFER_PARAMIKO': 'True'
         }
         result = subprocess.run(
             ['ansible-playbook', '-i', f'{WORK_DIR}/inventory.json', f'{WORK_DIR}/deploy.yml', '-v', '--timeout', '60'],

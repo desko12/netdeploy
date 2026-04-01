@@ -80,11 +80,11 @@ curl -X POST http://localhost:8000/api/vlans/1/apply
 
 ## Versions
 
-### v2.1.31 (Current)
-- Fix ios_ntp module - use ios_config with ntp server commands
-- Fix ios_dns - use ios_config with ip name-server commands
-- Fix ios_snmp - use ios_config with snmp-server commands
-- Add ios_user with ios_config using username privilege secret commands
+### v2.1.32 (Current)
+- Fix ios_l2_interfaces for trunk - use ios_config with parents parameter
+- Add switchport trunk encapsulation dot1q before switchport mode trunk
+- Fix ios_config to use parents for interface-level commands
+- Add pipelining for SSH connection
 
 Tested successfully:
 - Banner MOTD deployment ✓
@@ -93,6 +93,13 @@ Tested successfully:
 - VLAN creation ✓
 - NTP server ✓
 - User account ✓
+- Trunk port configuration ✓
+
+### v2.1.31
+- Fix ios_ntp module - use ios_config with ntp server commands
+- Fix ios_dns - use ios_config with ip name-server commands
+- Fix ios_snmp - use ios_config with snmp-server commands
+- Add ios_user with ios_config using username privilege secret commands
 
 ### v2.1.30
 - Add playbook handlers for banner, user, ntp, dns, snmp elements (previously only parsed but not generated)
