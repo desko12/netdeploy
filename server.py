@@ -128,19 +128,24 @@ def generate_playbook(configs):
                 state = next((c['text'] for c in elem['children'] if c['tag'] == 'state'), 'present')
                 ip_elem = next((c['text'] for c in elem['children'] if c['tag'] == 'ip'), None)
                 
+                state_map = {'eos': 'merged', 'nxos': 'merged', 'ios': 'merged', 'junos': 'present'}
+                mapped_state = state_map.get(config['os'], 'merged')
+                if state == 'absent':
+                    mapped_state = 'deleted'
+                
                 if config['os'] == 'eos':
-                    playbook = {'eos_interfaces': {'config': [{'name': name, 'enabled': state == 'present'}], 'state': state}}
+                    playbook = {'eos_interfaces': {'config': [{'name': name, 'enabled': state != 'absent'}], 'state': mapped_state}}
                     if ip_elem:
                         ip, prefix = ip_elem.split('/')
                         playbook['eos_interfaces']['config'][0]['ipv4_address'] = ip
                         playbook['eos_interfaces']['config'][0]['ipv4_prefix_length'] = int(prefix)
                     task.update(playbook)
                 elif config['os'] == 'nxos':
-                    task['nxos_interfaces'] = {'config': [{'name': name, 'enabled': state == 'present'}], 'state': state}
+                    task['nxos_interfaces'] = {'config': [{'name': name, 'enabled': state != 'absent'}], 'state': mapped_state}
                 elif config['os'] == 'ios':
-                    task['ios_interfaces'] = {'config': [{'name': name, 'description': elem['attrs'].get('description', ''), 'enabled': state == 'present'}], 'state': state}
+                    task['ios_interfaces'] = {'config': [{'name': name, 'description': elem['attrs'].get('description', ''), 'enabled': state != 'absent'}], 'state': mapped_state}
                 elif config['os'] == 'junos':
-                    task['junos_interfaces'] = {'interfaces': [{'name': name, 'enabled': state == 'present'}]}
+                    task['junos_interfaces'] = {'interfaces': [{'name': name, 'enabled': state != 'absent'}]}
             
             elif elem['type'] == 'vlan':
                 vlan_id = int(elem['attrs'].get('id'))
