@@ -1060,7 +1060,6 @@
                 const wrapper = doc.createElement('configs');
                 
                 if (doc.documentElement.tagName === 'config') {
-                    wrapper.innerHTML = configContent;
                     doc.replaceChild(wrapper, doc.documentElement);
                 } else {
                     configs.forEach(c => c.remove());
