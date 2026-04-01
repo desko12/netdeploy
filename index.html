@@ -792,18 +792,27 @@
         }
 
         function renderSavedConfigs() {
+            console.log('renderSavedConfigs called');
             const grid = document.getElementById('savedConfigsGrid');
+            if (!grid) {
+                console.log('savedConfigsGrid not found!');
+                return;
+            }
+            
             const savedConfigs = [];
             
             // Load new config_ format
-            Object.keys(localStorage)
-                .filter(k => k.startsWith('config_'))
-                .forEach(k => {
-                    try {
-                        const data = JSON.parse(localStorage.getItem(k));
-                        savedConfigs.push({ key: k, ...data });
-                    } catch(e) {}
-                });
+            const configKeys = Object.keys(localStorage).filter(k => k.startsWith('config_'));
+            console.log('Found config_ keys:', configKeys);
+            
+            configKeys.forEach(k => {
+                try {
+                    const data = JSON.parse(localStorage.getItem(k));
+                    savedConfigs.push({ key: k, ...data });
+                } catch(e) {
+                    console.log('Error parsing config:', k, e);
+                }
+            });
             
             // Load legacy template_ format
             Object.keys(localStorage)
@@ -820,11 +829,13 @@
             
             savedConfigs.sort((a, b) => new Date(b.date) - new Date(a.date));
             
+            console.log('Total saved configs:', savedConfigs.length);
+            
             if (savedConfigs.length === 0) {
                 grid.innerHTML = `
                     <div class="col-span-full text-center text-slate-500 py-12">
                         <i data-lucide="folder-x" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
-                        <p class="text-lg">Aucune configuration sauvegardée</p>
+                        <p class="text-lg">Aucune configuration disponible</p>
                         <p class="text-sm mt-2">Créez une configuration dans l'éditeur XML et sauvegardez-la</p>
                     </div>`;
                 lucide.createIcons();
@@ -863,7 +874,9 @@
         }
 
         function loadSavedConfigToEditor(key) {
+            console.log('loadSavedConfigToEditor called with:', key);
             const raw = localStorage.getItem(key);
+            console.log('Raw data:', raw);
             let xml;
             let name = 'Configuration';
             
@@ -871,19 +884,27 @@
                 const data = JSON.parse(raw);
                 xml = data.xml;
                 name = data.name || 'Configuration';
+                console.log('Parsed config:', { name, xmlLength: xml ? xml.length : 0 });
             } catch(e) {
+                console.log('Parse error:', e);
                 xml = raw;
                 name = key.replace('template_', '').replace('config_', '');
             }
             
-            if (xml && editor) {
-                const selectedEquip = getSelectedDeployEquipment();
-                if (selectedEquip.length > 0) {
-                    xml = injectEquipmentDataToXml(xml, selectedEquip);
+            if (xml) {
+                if (editor) {
+                    const selectedEquip = getSelectedDeployEquipment();
+                    if (selectedEquip.length > 0) {
+                        xml = injectEquipmentDataToXml(xml, selectedEquip);
+                    }
+                    editor.setValue(xml);
+                } else {
+                    console.log('Editor not initialized yet!');
                 }
-                editor.setValue(xml);
                 showSection('editor');
                 showToast(`"${name}" chargée dans l'éditeur`, 'success');
+            } else {
+                showToast('Configuration vide ou invalide', 'error');
             }
         }
 
@@ -1134,10 +1155,13 @@
             loadEquipment();
             loadHistory();
             renderTemplates();
+            renderSavedConfigs();
             populateTemplateDropdown();
             updateTime();
             setInterval(updateTime, 1000);
             lucide.createIcons();
+            console.log('App initialized');
+            console.log('Saved configs in localStorage:', Object.keys(localStorage).filter(k => k.startsWith('config_')));
         });
 
         function updateTime() {
@@ -1412,6 +1436,10 @@
             const name = prompt('Nom de la configuration:');
             if (name) {
                 const xml = editor.getValue();
+                if (!xml || !xml.trim()) {
+                    showToast('Aucun contenu XML à sauvegarder', 'error');
+                    return;
+                }
                 const config = {
                     name: name,
                     xml: xml,
@@ -1420,6 +1448,7 @@
                 };
                 const key = `config_${Date.now()}`;
                 localStorage.setItem(key, JSON.stringify(config));
+                console.log('Config saved:', key, config);
                 showToast(`Configuration "${name}" sauvegardée`, 'success');
                 renderSavedConfigs();
             }
