@@ -876,32 +876,44 @@
         function loadSavedConfigToEditor(key) {
             console.log('loadSavedConfigToEditor called with:', key);
             const raw = localStorage.getItem(key);
-            console.log('Raw data:', raw);
+            console.log('Raw data length:', raw ? raw.length : 0);
             let xml;
             let name = 'Configuration';
             
-            try {
-                const data = JSON.parse(raw);
-                xml = data.xml;
-                name = data.name || 'Configuration';
-                console.log('Parsed config:', { name, xmlLength: xml ? xml.length : 0 });
-            } catch(e) {
-                console.log('Parse error:', e);
-                xml = raw;
-                name = key.replace('template_', '').replace('config_', '');
+            if (!raw) {
+                showToast('Configuration non trouvée', 'error');
+                return;
             }
             
-            if (xml) {
+            // Check if it's JSON (config_) or raw XML (template_)
+            if (raw.trim().startsWith('<')) {
+                // Raw XML format
+                xml = raw;
+                name = key.replace('template_', '').replace('config_', '');
+            } else {
+                // JSON format
+                try {
+                    const data = JSON.parse(raw);
+                    xml = data.xml;
+                    name = data.name || 'Configuration';
+                } catch(e) {
+                    console.log('Parse error:', e);
+                    xml = raw;
+                    name = key.replace('template_', '').replace('config_', '');
+                }
+            }
+            
+            console.log('XML loaded:', xml ? xml.substring(0, 100) : 'empty');
+            
+            if (xml && xml.trim()) {
+                showSection('editor');
                 if (editor) {
                     const selectedEquip = getSelectedDeployEquipment();
                     if (selectedEquip.length > 0) {
                         xml = injectEquipmentDataToXml(xml, selectedEquip);
                     }
                     editor.setValue(xml);
-                } else {
-                    console.log('Editor not initialized yet!');
                 }
-                showSection('editor');
                 showToast(`"${name}" chargée dans l'éditeur`, 'success');
             } else {
                 showToast('Configuration vide ou invalide', 'error');
@@ -1395,10 +1407,17 @@
             const validationEl = document.getElementById('xmlValidation');
             const messageEl = document.getElementById('validationMessage');
             
+            if (!validationEl || !messageEl) {
+                return true;
+            }
+            
             if (!content.trim()) {
                 validationEl.className = 'bg-slate-800/50 rounded-lg border border-slate-700 p-3 flex items-center gap-3';
-                validationEl.querySelector('i').setAttribute('data-lucide', 'info');
-                validationEl.querySelector('i').className = 'w-5 h-5 text-slate-400';
+                const icon = validationEl.querySelector('i');
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'info');
+                    icon.className = 'w-5 h-5 text-slate-400';
+                }
                 messageEl.textContent = 'Entrez du contenu XML';
                 messageEl.className = 'text-sm text-slate-400';
                 lucide.createIcons();
@@ -1415,16 +1434,22 @@
                 }
                 
                 validationEl.className = 'bg-green-500/10 rounded-lg border border-green-500/50 p-3 flex items-center gap-3';
-                validationEl.querySelector('i').setAttribute('data-lucide', 'check-circle');
-                validationEl.querySelector('i').className = 'w-5 h-5 text-green-500';
+                const icon = validationEl.querySelector('i');
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'check-circle');
+                    icon.className = 'w-5 h-5 text-green-500';
+                }
                 messageEl.textContent = 'XML valide';
                 messageEl.className = 'text-sm text-green-400';
                 lucide.createIcons();
                 return true;
             } catch (e) {
                 validationEl.className = 'bg-red-500/10 rounded-lg border border-red-500/50 p-3 flex items-center gap-3';
-                validationEl.querySelector('i').setAttribute('data-lucide', 'x-circle');
-                validationEl.querySelector('i').className = 'w-5 h-5 text-red-500';
+                const icon = validationEl.querySelector('i');
+                if (icon) {
+                    icon.setAttribute('data-lucide', 'x-circle');
+                    icon.className = 'w-5 h-5 text-red-500';
+                }
                 messageEl.textContent = `Erreur XML: ${e.message.substring(0, 50)}...`;
                 messageEl.className = 'text-sm text-red-400';
                 lucide.createIcons();
