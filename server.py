@@ -90,7 +90,16 @@ def parse_xml(xml_string):
     return configs
 
 def generate_inventory(configs):
-    inventory = {'all': {'children': {}}}
+    inventory = {
+        'all': {
+            'children': {},
+            'vars': {
+                'ansible_user': 'admin',
+                'ansible_password': 'admin',
+                'ansible_connection': 'network_cli',
+            }
+        }
+    }
     
     for config in configs:
         os_name = config['os']
@@ -103,8 +112,6 @@ def generate_inventory(configs):
             'ansible_password': config['password'],
             'ansible_connection': 'network_cli',
             'ansible_network_os': os_name,
-            'ansible_ssh_common_args': '-o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null',
-            'ansible_ssh_pass': config['password'],
         }
     
     return json.dumps(inventory, indent=2)
@@ -218,6 +225,13 @@ host_key_checking = False
 inventory = /tmp/netdeploy/inventory.json
 retry_files_enabled = False
 timeout = 60
+deprecation_warnings = False
+
+[paramiko_connection]
+host_key_auto_add = True
+
+[ssh_connection]
+ssh_args = -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PreferredAuthentications=password -o PubkeyAuthentication=no
 """
         with open(f'{WORK_DIR}/ansible.cfg', 'w') as f:
             f.write(ansible_cfg)
