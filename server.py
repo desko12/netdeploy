@@ -35,6 +35,9 @@ def log(level, message, details=None):
         logs.append(entry)
         if len(logs) > MAX_LOGS:
             logs = logs[-MAX_LOGS:]
+    print(f"[{level}] {message}", flush=True)
+    if details:
+        print(f"    Details: {json.dumps(details)[:200]}", flush=True)
     return entry
 
 def parse_xml(xml_string):
