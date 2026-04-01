@@ -721,7 +721,11 @@
         lucide.createIcons();
 
         // State
-        let equipment = [];
+        let equipment = [
+            { id: '1', name: 'Core-01', ip: '10.10.10.3', type: 'router', os: 'cisco_ios', port: 22, username: 'desko', password: 'desko', status: 'offline' },
+            { id: '2', name: 'Core-02', ip: '10.10.10.4', type: 'router', os: 'cisco_ios', port: 22, username: 'desko', password: 'desko', status: 'offline' },
+            { id: '3', name: 'SwMgnt', ip: '10.10.10.2', type: 'switch', os: 'cisco_ios', port: 22, username: 'desko', password: 'desko', status: 'offline' }
+        ];
         let history = [];
         let currentSection = 'dashboard';
         let editor = null;
@@ -1198,13 +1202,30 @@
             loadEquipment();
             loadHistory();
             renderTemplates();
+            
+            // Add default saved config if none exist
+            if (!localStorage.getItem('config_sample_vlan')) {
+                const sampleConfig = {
+                    name: 'VLAN Client',
+                    xml: `<config target="switch" host="0.0.0.0" os="ios" user="admin" password="password">
+  <vlan id="100">
+    <name>CLIENT_VLAN</name>
+  </vlan>
+</config>`,
+                    date: new Date().toISOString(),
+                    targets: []
+                };
+                localStorage.setItem('config_sample_vlan', JSON.stringify(sampleConfig));
+            }
+            
             renderSavedConfigs();
             populateTemplateDropdown();
             updateTime();
             setInterval(updateTime, 1000);
             lucide.createIcons();
             console.log('App initialized');
-            console.log('Saved configs in localStorage:', Object.keys(localStorage).filter(k => k.startsWith('config_')));
+            console.log('Equipment:', equipment.length, 'items');
+            console.log('Configs in localStorage:', Object.keys(localStorage).filter(k => k.startsWith('config_')).length);
         });
 
         function updateTime() {
@@ -1513,7 +1534,13 @@
         // Equipment Management
         function loadEquipment() {
             const stored = localStorage.getItem('equipment');
-            equipment = stored ? JSON.parse(stored) : [];
+            if (stored) {
+                equipment = JSON.parse(stored);
+            }
+            // Save defaults if not already saved
+            if (!stored) {
+                saveEquipmentData();
+            }
             renderEquipmentTable();
             updateStats();
             updateEquipmentStatusList();
