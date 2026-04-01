@@ -77,3 +77,51 @@ curl -X POST http://localhost:8000/api/vlans/1/apply
 - Docker avec bridge network ne peut pas atteindre le réseau host - utiliser --network host
 - Les containers avec volume mount reflètent immédiatement les changements de code
 - Ping endpoint nécessite iputils-ping installé dans le container
+
+## Versions
+
+### v2.1.28 (Current)
+- Added 10 default XML configurations:
+  - VLAN Creation
+  - Access Port
+  - Trunk Port
+  - L3 Interface IP
+  - Static Route
+  - Banner MOTD
+  - User Account
+  - NTP Server
+  - DNS Configuration
+  - SNMP Configuration
+
+### v2.1.27
+- Fix XML configs - ios_l2_interfaces for trunk, ios_l3_interfaces for IP
+
+### v2.1.26
+- Separate history/configs, add nc connectivity test, netcat installed
+
+### v2.1.25
+- Add default equipment and sample config for testing
+
+### v2.1.24
+- Show deployments (history_) in Mes configs section
+
+### v2.1.23
+- Fix config loading - handle raw XML format and null element errors
+
+### v2.1.22
+- Debug saved configs loading and fixing config modification
+
+### v2.1.21
+- Fix template button click - add pointer-events-none to Lucide icons
+
+### v2.1.20
+- Fix ios_interfaces state - use merged instead of present
+
+### v2.1.19
+- Improve Ansible error messages and handle BrokenPipe
+
+### v2.1.18
+- Fix multi-equipment XML wrapper orphan vlan bug
+
+### v2.1.17
+- Fix paramiko host key verification for SSH connections

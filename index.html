@@ -1173,20 +1173,136 @@
             loadHistory();
             renderTemplates();
             
-            // Add default saved config if none exist
-            if (!localStorage.getItem('config_sample_vlan')) {
-                const sampleConfig = {
-                    name: 'VLAN Client',
+            // Add default saved configs if none exist
+            const defaultConfigs = [
+                {
+                    key: 'config_default_vlan',
+                    name: 'VLAN Creation',
                     xml: `<config target="switch" host="0.0.0.0" os="ios" user="admin" password="password">
   <vlan id="100">
     <name>CLIENT_VLAN</name>
   </vlan>
-</config>`,
-                    date: new Date().toISOString(),
-                    targets: []
-                };
-                localStorage.setItem('config_sample_vlan', JSON.stringify(sampleConfig));
-            }
+</config>`
+                },
+                {
+                    key: 'config_default_access_port',
+                    name: 'Access Port',
+                    xml: `<config target="switch" host="0.0.0.0" os="ios" user="admin" password="password">
+  <interface name="GigabitEthernet0/1" mode="access">
+    <description>Access Port for User</description>
+    <vlan>100</vlan>
+    <enabled>true</enabled>
+  </interface>
+</config>`
+                },
+                {
+                    key: 'config_default_trunk_port',
+                    name: 'Trunk Port',
+                    xml: `<config target="switch" host="0.0.0.0" os="ios" user="admin" password="password">
+  <interface name="GigabitEthernet0/24" mode="trunk">
+    <description>Uplink to Core</description>
+    <allowed-vlans>10,20,30,100</allowed-vlans>
+    <native-vlan>10</native-vlan>
+    <enabled>true</enabled>
+  </interface>
+</config>`
+                },
+                {
+                    key: 'config_default_l3_interface',
+                    name: 'L3 Interface IP',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <interface name="GigabitEthernet0/0">
+    <description>WAN Interface</description>
+    <ip>10.0.0.1</ip>
+    <mask>255.255.255.0</mask>
+    <enabled>true</enabled>
+    <no-shutdown/>
+  </interface>
+</config>`
+                },
+                {
+                    key: 'config_default_static_route',
+                    name: 'Static Route',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <static-route>
+    <network>0.0.0.0</network>
+    <mask>0.0.0.0</mask>
+    <next-hop>192.168.1.254</next-hop>
+  </static-route>
+</config>`
+                },
+                {
+                    key: 'config_default_banner',
+                    name: 'Banner MOTD',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <banner>
+    <motd>###############################################################################
+#                    AUTHORIZED ACCESS ONLY
+###############################################################################
+# This system is for authorized use only. Users have no constitutive privacy
+# expectations on this system. Unauthorized access is prohibited and will be
+# prosecuted. All activities are logged.
+###############################################################################</motd>
+  </banner>
+</config>`
+                },
+                {
+                    key: 'config_default_user',
+                    name: 'User Account',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <user>
+    <name>netadmin</name>
+    <password>encrypted</password>
+    <privilege>15</privilege>
+  </user>
+</config>`
+                },
+                {
+                    key: 'config_default_ntp',
+                    name: 'NTP Server',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <ntp>
+    <server>0.fr.pool.ntp.org</server>
+    <server>1.fr.pool.ntp.org</server>
+  </ntp>
+</config>`
+                },
+                {
+                    key: 'config_default_dns',
+                    name: 'DNS Configuration',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <dns>
+    <server>8.8.8.8</server>
+    <server>1.1.1.1</server>
+    <domain>local.network</domain>
+  </dns>
+</config>`
+                },
+                {
+                    key: 'config_default_snmp',
+                    name: 'SNMP Configuration',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <snmp>
+    <community name="public" permission="ro"/>
+    <community name="private" permission="rw"/>
+    <location>DataCenter Rack-01</location>
+    <contact>admin@network.local</contact>
+  </snmp>
+</config>`
+                }
+            ];
+
+            defaultConfigs.forEach(cfg => {
+                if (!localStorage.getItem(cfg.key)) {
+                    const config = {
+                        name: cfg.name,
+                        xml: cfg.xml,
+                        date: new Date().toISOString(),
+                        targets: []
+                    };
+                    localStorage.setItem(cfg.key, JSON.stringify(config));
+                }
+            });
             
             renderSavedConfigs();
             populateTemplateDropdown();
@@ -1817,7 +1933,7 @@
                 </label>
             `).join('');
             
-            // Load saved configs (config_ format)
+            // Load saved configs (config_ format only - NO history)
             const savedSelect = document.getElementById('savedTemplateSelect');
             savedSelect.innerHTML = '<option value="">-- Choisir une configuration --</option>';
             
@@ -1825,15 +1941,7 @@
             Object.keys(localStorage).filter(k => k.startsWith('config_')).forEach(k => {
                 try {
                     const h = JSON.parse(localStorage.getItem(k));
-                    savedSelect.innerHTML += `<option value="${k}">${h.name || 'Sans nom'} (${new Date(h.date).toLocaleDateString('fr-FR')})</option>`;
-                } catch(e) {}
-            });
-            
-            // Load from history_ keys (deployments)
-            Object.keys(localStorage).filter(k => k.startsWith('history_')).forEach(k => {
-                try {
-                    const h = JSON.parse(localStorage.getItem(k));
-                    savedSelect.innerHTML += `<option value="${k}">${h.name || 'Déploiement'} (${new Date(h.date).toLocaleDateString('fr-FR')})</option>`;
+                    savedSelect.innerHTML += `<option value="${k}">${h.name || 'Sans nom'}</option>`;
                 } catch(e) {}
             });
         }
