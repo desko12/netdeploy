@@ -877,6 +877,10 @@
             }
             
             if (xml && editor) {
+                const selectedEquip = getSelectedDeployEquipment();
+                if (selectedEquip.length > 0) {
+                    xml = injectEquipmentDataToXml(xml, selectedEquip);
+                }
                 editor.setValue(xml);
                 showSection('editor');
                 showToast(`"${name}" chargée dans l'éditeur`, 'success');
@@ -898,6 +902,10 @@
             }
             
             if (xml) {
+                const selectedEquip = getSelectedDeployEquipment();
+                if (selectedEquip.length > 0) {
+                    xml = injectEquipmentDataToXml(xml, selectedEquip);
+                }
                 document.getElementById('quickXmlInput').value = xml;
                 showSection('deploy');
                 showToast(`"${name}" chargée pour déploiement`, 'success');
@@ -915,7 +923,12 @@
         function useTemplate(templateId) {
             const template = getTemplateById(templateId);
             if (template && editor) {
-                editor.setValue(template.xml);
+                let xml = template.xml;
+                const selectedEquip = getSelectedDeployEquipment();
+                if (selectedEquip.length > 0) {
+                    xml = injectEquipmentDataToXml(xml, selectedEquip);
+                }
+                editor.setValue(xml);
                 showSection('editor');
                 showToast(`Template "${template.name}" chargé`, 'success');
             }
@@ -995,16 +1008,107 @@
             });
         }
 
+        function injectEquipmentDataToXml(xml, targets) {
+            if (!targets || targets.length === 0) return xml;
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, 'text/xml');
+            
+            if (doc.querySelector('parsererror')) {
+                return xml;
+            }
+            
+            let configs = doc.querySelectorAll('config');
+            
+            if (targets.length === 1) {
+                const eq = targets[0];
+                const os = mapOsToAnsible(eq.os);
+                
+                if (configs.length === 0) {
+                    const root = doc.documentElement;
+                    const config = doc.createElement('config');
+                    config.setAttribute('target', eq.name);
+                    config.setAttribute('host', eq.ip);
+                    config.setAttribute('os', os);
+                    config.setAttribute('user', eq.username || 'admin');
+                    config.setAttribute('password', eq.password || '');
+                    Array.from(root.childNodes).forEach(child => {
+                        if (child.nodeType === 1) config.appendChild(child.cloneNode(true));
+                    });
+                    root.innerHTML = '';
+                    root.appendChild(config);
+                } else {
+                    configs.forEach(config => {
+                        config.setAttribute('target', eq.name);
+                        config.setAttribute('host', eq.ip);
+                        config.setAttribute('os', os);
+                        config.setAttribute('user', eq.username || 'admin');
+                        config.setAttribute('password', eq.password || '');
+                    });
+                }
+            } else {
+                const firstConfig = configs[0] || doc.documentElement;
+                let configContent = '';
+                
+                if (configs.length > 0) {
+                    configContent = firstConfig.innerHTML;
+                } else {
+                    Array.from(doc.documentElement.childNodes).forEach(child => {
+                        if (child.nodeType === 1) configContent += new XMLSerializer().serializeToString(child);
+                    });
+                }
+                
+                doc.documentElement.innerHTML = '';
+                
+                targets.forEach(eq => {
+                    const os = mapOsToAnsible(eq.os);
+                    const config = doc.createElement('config');
+                    config.setAttribute('target', eq.name);
+                    config.setAttribute('host', eq.ip);
+                    config.setAttribute('os', os);
+                    config.setAttribute('user', eq.username || 'admin');
+                    config.setAttribute('password', eq.password || '');
+                    config.innerHTML = configContent;
+                    doc.documentElement.appendChild(config);
+                });
+            }
+            
+            const serializer = new XMLSerializer();
+            return serializer.serializeToString(doc);
+        }
+        
+        function mapOsToAnsible(os) {
+            const osMap = {
+                'cisco_ios': 'ios',
+                'cisco_nxos': 'nxos', 
+                'arista_eos': 'eos',
+                'juniper_junos': 'junos',
+                'fortinet': 'fortios',
+                'mikrotik': 'routeros',
+                'palo_alto': 'panos'
+            };
+            return osMap[os] || os || 'ios';
+        }
+        
         function loadTemplate() {
             const templateKey = document.getElementById('templateSelect').value;
             if (templateKey) {
                 const template = getTemplateById(templateKey);
                 if (template && editor) {
-                    editor.setValue(template.xml);
+                    let xml = template.xml;
+                    const selectedEquip = getSelectedDeployEquipment();
+                    if (selectedEquip.length > 0) {
+                        xml = injectEquipmentDataToXml(xml, selectedEquip);
+                    }
+                    editor.setValue(xml);
                     document.getElementById('editorFileName').textContent = `${template.name}.xml`;
                     showToast(`Template "${template.name}" chargé`, 'success');
                 }
             }
+        }
+        
+        function getSelectedDeployEquipment() {
+            return selectedDeployEquipments.map(i => equipment[i]).filter(e => e);
         }
 
         function escapeHtml(text) {
@@ -1648,6 +1752,10 @@
                     xml = raw;
                 }
                 
+                const selectedEquip = getSelectedDeployEquipment();
+                if (selectedEquip.length > 0) {
+                    xml = injectEquipmentDataToXml(xml, selectedEquip);
+                }
                 document.getElementById('quickXmlInput').value = xml;
                 showToast('Configuration chargée', 'success');
             }
