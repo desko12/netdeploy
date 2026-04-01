@@ -80,7 +80,19 @@ curl -X POST http://localhost:8000/api/vlans/1/apply
 
 ## Versions
 
-### v2.1.30 (Current)
+### v2.1.31 (Current)
+- Fix ios_ntp module - use ios_config with ntp server commands
+- Fix ios_dns - use ios_config with ip name-server commands
+- Fix ios_snmp - use ios_config with snmp-server commands
+- Add ios_user with configured_password and password_type for Cisco IOS
+
+Tested successfully:
+- Banner MOTD deployment ✓
+- DNS configuration ✓
+- SNMP configuration ✓
+- VLAN creation ✓
+
+### v2.1.30
 - Add playbook handlers for banner, user, ntp, dns, snmp elements (previously only parsed but not generated)
 
 ### v2.1.29
