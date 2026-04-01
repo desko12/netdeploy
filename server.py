@@ -17,6 +17,36 @@ logs_lock = threading.Lock()
 logs = []
 MAX_LOGS = 1000
 
+def mask_to_prefix(mask):
+    mask_map = {
+        '255.255.255.255': 32,
+        '255.255.255.254': 31,
+        '255.255.255.252': 30,
+        '255.255.255.248': 29,
+        '255.255.255.240': 28,
+        '255.255.255.224': 27,
+        '255.255.255.192': 26,
+        '255.255.255.128': 25,
+        '255.255.255.0': 24,
+        '255.255.254.0': 23,
+        '255.255.252.0': 22,
+        '255.255.248.0': 21,
+        '255.255.240.0': 20,
+        '255.255.224.0': 19,
+        '255.255.192.0': 18,
+        '255.255.128.0': 17,
+        '255.255.0.0': 16,
+        '255.254.0.0': 15,
+        '255.252.0.0': 14,
+        '255.248.0.0': 13,
+        '255.240.0.0': 12,
+        '255.224.0.0': 11,
+        '255.192.0.0': 10,
+        '255.128.0.0': 9,
+        '255.0.0.0': 8,
+    }
+    return mask_map.get(mask, 24)
+
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in separate threads"""
 
@@ -125,27 +155,74 @@ def generate_playbook(configs):
             
             if elem['type'] == 'interface':
                 name = elem['attrs'].get('name')
+                mode = elem['attrs'].get('mode', 'layer3')
                 state = next((c['text'] for c in elem['children'] if c['tag'] == 'state'), 'present')
                 ip_elem = next((c['text'] for c in elem['children'] if c['tag'] == 'ip'), None)
+                description = elem['attrs'].get('description', '')
                 
                 state_map = {'eos': 'merged', 'nxos': 'merged', 'ios': 'merged', 'junos': 'present'}
                 mapped_state = state_map.get(config['os'], 'merged')
                 if state == 'absent':
                     mapped_state = 'deleted'
                 
-                if config['os'] == 'eos':
-                    playbook = {'eos_interfaces': {'config': [{'name': name, 'enabled': state != 'absent'}], 'state': mapped_state}}
-                    if ip_elem:
-                        ip, prefix = ip_elem.split('/')
-                        playbook['eos_interfaces']['config'][0]['ipv4_address'] = ip
-                        playbook['eos_interfaces']['config'][0]['ipv4_prefix_length'] = int(prefix)
-                    task.update(playbook)
-                elif config['os'] == 'nxos':
-                    task['nxos_interfaces'] = {'config': [{'name': name, 'enabled': state != 'absent'}], 'state': mapped_state}
-                elif config['os'] == 'ios':
-                    task['ios_interfaces'] = {'config': [{'name': name, 'description': elem['attrs'].get('description', ''), 'enabled': state != 'absent'}], 'state': mapped_state}
-                elif config['os'] == 'junos':
-                    task['junos_interfaces'] = {'interfaces': [{'name': name, 'enabled': state != 'absent'}]}
+                if mode in ['trunk', 'access']:
+                    if config['os'] == 'ios':
+                        l2_config = {'name': name}
+                        if mode == 'trunk':
+                            l2_config['mode'] = 'trunk'
+                            allowed_vlans = elem['attrs'].get('allowed-vlans', '')
+                            if allowed_vlans:
+                                l2_config['trunk_vlans'] = [v.strip() for v in allowed_vlans.split(',')]
+                            native_vlan = elem['attrs'].get('native-vlan', '')
+                            if native_vlan:
+                                l2_config['native_vlan'] = int(native_vlan)
+                        else:
+                            l2_config['mode'] = 'access'
+                            vlan_elem = next((c['text'] for c in elem['children'] if c['tag'] == 'vlan'), None)
+                            if vlan_elem:
+                                l2_config['access_vlan'] = int(vlan_elem)
+                        task['ios_l2_interfaces'] = {'config': [l2_config], 'state': mapped_state}
+                    elif config['os'] == 'nxos':
+                        l2_config = {'name': name}
+                        if mode == 'trunk':
+                            l2_config['mode'] = 'trunk'
+                        else:
+                            l2_config['mode'] = 'access'
+                        task['nxos_l2_interfaces'] = {'config': [l2_config], 'state': mapped_state}
+                else:
+                    if config['os'] == 'eos':
+                        playbook = {'eos_interfaces': {'config': [{'name': name, 'enabled': state != 'absent'}], 'state': mapped_state}}
+                        if ip_elem:
+                            ip, prefix = ip_elem.split('/')
+                            playbook['eos_interfaces']['config'][0]['ipv4_address'] = ip
+                            playbook['eos_interfaces']['config'][0]['ipv4_prefix_length'] = int(prefix)
+                        task.update(playbook)
+                    elif config['os'] == 'nxos':
+                        task['nxos_interfaces'] = {'config': [{'name': name, 'enabled': state != 'absent'}], 'state': mapped_state}
+                    elif config['os'] == 'ios':
+                        if ip_elem:
+                            if '/' in ip_elem:
+                                ip, prefix = ip_elem.split('/')
+                                task['ios_l3_interfaces'] = {
+                                    'config': [{
+                                        'name': name,
+                                        'ipv4': [{'address': f'{ip}/{prefix}'}]
+                                    }],
+                                    'state': mapped_state
+                                }
+                            else:
+                                mask = next((c['text'] for c in elem['children'] if c['tag'] == 'mask'), '255.255.255.0')
+                                task['ios_l3_interfaces'] = {
+                                    'config': [{
+                                        'name': name,
+                                        'ipv4': [{'address': f'{ip_elem}/{mask_to_prefix(mask)}'}]
+                                    }],
+                                    'state': mapped_state
+                                }
+                        else:
+                            task['ios_interfaces'] = {'config': [{'name': name, 'description': description, 'enabled': state != 'absent'}], 'state': mapped_state}
+                    elif config['os'] == 'junos':
+                        task['junos_interfaces'] = {'interfaces': [{'name': name, 'enabled': state != 'absent'}]}
             
             elif elem['type'] == 'vlan':
                 vlan_id = int(elem['attrs'].get('id'))
