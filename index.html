@@ -1047,18 +1047,25 @@
                     });
                 }
             } else {
-                const firstConfig = configs[0] || doc.documentElement;
                 let configContent = '';
                 
                 if (configs.length > 0) {
-                    configContent = firstConfig.innerHTML;
+                    configContent = configs[0].innerHTML;
                 } else {
                     Array.from(doc.documentElement.childNodes).forEach(child => {
                         if (child.nodeType === 1) configContent += new XMLSerializer().serializeToString(child);
                     });
                 }
                 
-                doc.documentElement.innerHTML = '';
+                const wrapper = doc.createElement('configs');
+                
+                if (doc.documentElement.tagName === 'config') {
+                    wrapper.innerHTML = configContent;
+                    doc.replaceChild(wrapper, doc.documentElement);
+                } else {
+                    configs.forEach(c => c.remove());
+                    doc.documentElement.appendChild(wrapper);
+                }
                 
                 targets.forEach(eq => {
                     const os = mapOsToAnsible(eq.os);
@@ -1069,7 +1076,7 @@
                     config.setAttribute('user', eq.username || 'admin');
                     config.setAttribute('password', eq.password || '');
                     config.innerHTML = configContent;
-                    doc.documentElement.appendChild(config);
+                    wrapper.appendChild(config);
                 });
             }
             
