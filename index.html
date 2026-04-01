@@ -832,25 +832,6 @@
                     });
                 });
             
-            // Load history_ format (deployments)
-            Object.keys(localStorage)
-                .filter(k => k.startsWith('history_'))
-                .forEach(k => {
-                    try {
-                        const data = JSON.parse(localStorage.getItem(k));
-                        savedConfigs.push({
-                            key: k,
-                            name: data.name || `Déploiement ${new Date(data.date).toLocaleDateString('fr-FR')}`,
-                            xml: data.xml || '',
-                            date: data.date || new Date().toISOString(),
-                            type: 'history',
-                            results: data.results
-                        });
-                    } catch(e) {
-                        console.log('Error parsing history:', k, e);
-                    }
-                });
-            
             savedConfigs.sort((a, b) => new Date(b.date) - new Date(a.date));
             
             console.log('Total saved configs:', savedConfigs.length);
@@ -866,30 +847,20 @@
                 return;
             }
             
-            grid.innerHTML = savedConfigs.map(cfg => {
-                const isHistory = cfg.type === 'history';
-                const statusBadge = isHistory && cfg.results ? 
-                    cfg.results.map(r => `<span class="inline-block px-2 py-0.5 rounded text-xs ${r.status === 'success' ? 'bg-green-500/20 text-green-400' : r.status === 'failed' ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400'}">${r.target}: ${r.status}</span>`).join(' ') : 
-                    '';
-                const icon = isHistory ? 'history' : 'file-code-2';
-                const iconColor = isHistory ? 'text-amber-400' : 'text-blue-400';
-                const iconBg = isHistory ? 'bg-amber-500/20' : 'bg-blue-500/20';
-                
-                return `
+            grid.innerHTML = savedConfigs.map(cfg => `
                 <div class="bg-slate-800/50 rounded-xl border border-slate-700 p-5 card-hover transition-all">
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center">
-                                <i data-lucide="${icon}" class="w-5 h-5 ${iconColor}"></i>
+                            <div class="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="file-code-2" class="w-5 h-5 text-blue-400"></i>
                             </div>
                             <div>
                                 <h4 class="font-medium text-white">${cfg.name || 'Sans nom'}</h4>
-                                <span class="text-xs text-slate-400">${new Date(cfg.date).toLocaleDateString('fr-FR')} ${new Date(cfg.date).toLocaleTimeString('fr-FR')}</span>
+                                <span class="text-xs text-slate-400">${new Date(cfg.date).toLocaleDateString('fr-FR')}</span>
                             </div>
                         </div>
-                        ${isHistory ? '<span class="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">Déploiement</span>' : ''}
+                        ${cfg.type === 'template' ? '<span class="px-2 py-1 bg-slate-500/20 text-slate-400 rounded text-xs">Template</span>' : ''}
                     </div>
-                    ${isHistory && cfg.results ? `<div class="flex flex-wrap gap-1 mb-3">${statusBadge}</div>` : ''}
                     <div class="flex items-center gap-2">
                         <button onclick="loadSavedConfigToEditor('${cfg.key}')" class="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
                             <i data-lucide="edit-3" class="w-4 h-4"></i>
@@ -903,8 +874,7 @@
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </div>
-                </div>`;
-            }).join('');
+                </div>`).join('');
             lucide.createIcons();
         }
 
@@ -1756,18 +1726,36 @@
             const e = equipment[index];
             showToast(`Test de connexion à ${e.name}...`, 'info');
             
-            // Simulate ping test
-            await new Promise(r => setTimeout(r, 1500));
-            
-            // Simple simulation: consider online if IP starts with 192 or 10
-            const isOnline = e.ip.startsWith('192.') || e.ip.startsWith('10.') || Math.random() > 0.3;
-            equipment[index].status = isOnline ? 'online' : 'offline';
-            saveEquipmentData();
-            renderEquipmentTable();
-            updateStats();
-            updateEquipmentStatusList();
-            
-            showToast(`${e.name}: ${isOnline ? 'Accessible' : 'Inaccessible'}`, isOnline ? 'success' : 'warning');
+            try {
+                const response = await fetch(`/api/ping?ip=${e.ip}`);
+                const result = await response.json();
+                
+                const isOnline = result.online;
+                const ports = result.ports;
+                
+                equipment[index].status = isOnline ? 'online' : 'offline';
+                saveEquipmentData();
+                renderEquipmentTable();
+                updateStats();
+                updateEquipmentStatusList();
+                
+                if (isOnline) {
+                    const portInfo = [];
+                    if (ports[22] === 'open') portInfo.push('SSH(22)');
+                    if (ports[830] === 'open') portInfo.push('NETCONF(830)');
+                    showToast(`${e.name}: Connecté (${portInfo.join(', ')})`, 'success');
+                } else {
+                    showToast(`${e.name}: Hors ligne (ports fermés)`, 'warning');
+                }
+            } catch (error) {
+                console.error('Connectivity test failed:', error);
+                equipment[index].status = 'offline';
+                saveEquipmentData();
+                renderEquipmentTable();
+                updateStats();
+                updateEquipmentStatusList();
+                showToast(`${e.name}: Erreur de test`, 'error');
+            }
         }
 
         function refreshEquipmentStatus() {

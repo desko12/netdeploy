@@ -303,6 +303,46 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({'status': 'ok', 'timestamp': datetime.now().isoformat()}).encode())
+        elif self.path.startswith('/api/ping'):
+            from urllib.parse import urlparse, parse_qs
+            parsed = urlparse(self.path)
+            params = parse_qs(parsed.query)
+            ip = params.get('ip', [None])[0]
+            
+            if not ip:
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'IP parameter required'}).encode())
+                return
+            
+            log('INFO', f'Test de connectivite vers {ip}')
+            result = {'host': ip, 'ports': {}, 'online': False}
+            
+            for port in [22, 830]:
+                try:
+                    proc = subprocess.run(
+                        ['nc', '-zv', '-w', '3', ip, str(port)],
+                        capture_output=True,
+                        timeout=5
+                    )
+                    if proc.returncode == 0:
+                        result['ports'][port] = 'open'
+                        result['online'] = True
+                    else:
+                        result['ports'][port] = 'closed'
+                except subprocess.TimeoutExpired:
+                    result['ports'][port] = 'timeout'
+                except Exception as e:
+                    result['ports'][port] = f'error: {str(e)}'
+            
+            status = 'online' if result['online'] else 'offline'
+            log('INFO', f'Resultat pour {ip}: {status}', result)
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(result).encode())
         else:
             super().do_GET()
     
