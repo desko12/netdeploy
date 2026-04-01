@@ -285,7 +285,8 @@ def generate_playbook(configs):
                 user_pass = next((c['text'] for c in elem['children'] if c['tag'] == 'password'), '')
                 privilege = next((c['text'] for c in elem['children'] if c['tag'] == 'privilege'), '15')
                 if user_name and config['os'] == 'ios':
-                    task['ios_user'] = {'name': user_name, 'configured_password': user_pass, 'password_type': 'password', 'privilege': int(privilege), 'state': 'present'}
+                    lines = [f'username {user_name} privilege {privilege} secret {user_pass}']
+                    task['ios_config'] = {'lines': lines}
             
             elif elem['type'] == 'ntp':
                 servers = [c['text'] for c in elem['children'] if c['tag'] == 'server' and c['text']]
