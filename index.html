@@ -778,12 +778,12 @@
                     </div>
                     <p class="text-sm text-slate-400 mb-4">${t.description}</p>
                     <div class="flex items-center gap-2">
-                        <button onclick="useTemplate('${t.id}')" class="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
-                            <i data-lucide="play" class="w-4 h-4"></i>
+                        <button id="useTemplateBtn_${t.id}" onclick="useTemplate('${t.id}')" class="flex-1 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="play" class="w-4 h-4 pointer-events-none"></i>
                             Utiliser
                         </button>
                         <button onclick="viewTemplateDetail('${t.id}')" class="px-3 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-sm transition-colors">
-                            <i data-lucide="eye" class="w-4 h-4 text-slate-400"></i>
+                            <svg data-lucide="eye" class="w-4 h-4 text-slate-400 pointer-events-none"></svg>
                         </button>
                     </div>
                 </div>`;
@@ -921,16 +921,21 @@
         }
 
         function useTemplate(templateId) {
+            console.log('useTemplate called with:', templateId);
             const template = getTemplateById(templateId);
+            console.log('Template found:', template);
             if (template && editor) {
                 let xml = template.xml;
                 const selectedEquip = getSelectedDeployEquipment();
+                console.log('Selected equipment:', selectedEquip);
                 if (selectedEquip.length > 0) {
                     xml = injectEquipmentDataToXml(xml, selectedEquip);
                 }
                 editor.setValue(xml);
                 showSection('editor');
                 showToast(`Template "${template.name}" chargé`, 'success');
+            } else {
+                console.log('Error: template or editor is null', {template: !!template, editor: !!editor});
             }
         }
 
