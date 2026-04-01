@@ -250,8 +250,17 @@ ssh_args = -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o Prefer
             log('SUCCESS', 'Playbook Ansible execute avec succes')
             return {'success': True, 'output': result.stdout, 'logs': logs_list}
         else:
-            log('ERROR', 'Playbook Ansible a echoue', {'stderr': result.stderr[:1000], 'stdout': result.stdout[-1000:]})
-            return {'success': False, 'error': result.stderr, 'output': result.stdout, 'logs': logs_list}
+            error_msg = result.stderr
+            if 'FAILED' in result.stdout:
+                lines = result.stdout.split('\n')
+                for line in lines:
+                    if 'FAILED' in line or 'fatal:' in line:
+                        error_msg = line.strip()
+                        break
+            elif 'unreachable' in result.stdout:
+                error_msg = 'Equipement injoignable - Verifiez la connectivite et les credentials'
+            log('ERROR', 'Playbook Ansible a echoue', {'stderr': result.stderr[:500], 'stdout': result.stdout[-500:]})
+            return {'success': False, 'error': error_msg, 'output': result.stdout, 'logs': logs_list}
             
     except subprocess.TimeoutExpired:
         log('ERROR', 'Timeout - Le playbook a depasse le temps limite (5 minutes)')
@@ -259,6 +268,9 @@ ssh_args = -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o Prefer
     except FileNotFoundError:
         log('ERROR', 'Ansible non installe dans le container')
         return {'success': False, 'error': 'Ansible not installed. Please install ansible in the container.', 'logs': logs_list}
+    except BrokenPipeError:
+        log('WARNING', 'Client a ferme la connexion prematurément')
+        return {'success': False, 'error': 'Client closed connection', 'logs': logs_list}
     except Exception as e:
         log('ERROR', f'Exception lors du deploiement: {str(e)}')
         return {'success': False, 'error': str(e), 'logs': logs_list}
