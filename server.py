@@ -95,7 +95,7 @@ def parse_xml(xml_string):
             'elements': []
         }
         
-        supported = ['interface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp', 'nat']
+        supported = ['interface', 'subinterface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp', 'nat']
         
         for elem in config_el:
             if elem.tag not in supported:
@@ -227,6 +227,42 @@ def generate_playbook(configs):
                             task['ios_interfaces'] = {'config': [{'name': name, 'description': description, 'enabled': state != 'absent'}], 'state': mapped_state}
                     elif config['os'] == 'junos':
                         task['junos_interfaces'] = {'interfaces': [{'name': name, 'enabled': state != 'absent'}]}
+            
+            elif elem['type'] == 'subinterface':
+                name = elem['attrs'].get('name', '')
+                vlan_id = elem['attrs'].get('vlan')
+                description = next((c['text'] for c in elem['children'] if c['tag'] == 'description'), '')
+                ip = next((c['text'] for c in elem['children'] if c['tag'] == 'ip'), '')
+                mask = next((c['text'] for c in elem['children'] if c['tag'] == 'mask'), '255.255.255.0')
+                enabled = next((c['text'] for c in elem['children'] if c['tag'] == 'enabled'), 'true')
+                
+                if name and vlan_id and config['os'] == 'ios':
+                    lines = [f'encapsulation dot1q {vlan_id}']
+                    if ip:
+                        lines.append(f'ip address {ip} {mask}')
+                    if description:
+                        lines.append(f'description {description}')
+                    if enabled.lower() == 'true':
+                        lines.append('no shutdown')
+                    task['ios_config'] = {'lines': lines, 'parents': [f'interface {name}.{vlan_id}']}
+                elif name and vlan_id and config['os'] == 'nxos':
+                    lines = [f'encapsulation dot1q {vlan_id}']
+                    if ip:
+                        lines.append(f'ip address {ip}/{mask}')
+                    if description:
+                        lines.append(f'description {description}')
+                    task['ios_config'] = {'lines': lines, 'parents': [f'interface {name}.{vlan_id}']}
+                elif name and vlan_id and config['os'] == 'eos':
+                    lines = [f'description {description}', f'vlan id {vlan_id}']
+                    if ip:
+                        lines.append(f'ip address {ip}/{mask}')
+                    task['eos_config'] = {'lines': lines, 'parents': [f'interfaces {name}.{vlan_id}']}
+                    lines = [f'interfaces {name}.{vlan_id}']
+                    lines.append(f'description {description}')
+                    lines.append(f'vlan id {vlan_id}')
+                    if ip:
+                        lines.append(f'ip address {ip}/{mask}')
+                    task['eos_config'] = {'lines': lines}
             
             elif elem['type'] == 'vlan':
                 vlan_id = int(elem['attrs'].get('id'))

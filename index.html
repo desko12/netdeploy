@@ -1300,6 +1300,42 @@
     <acl>1</acl>
   </nat>
 </config>`
+                },
+                {
+                    key: 'config_default_subinterface_ios',
+                    name: 'Sub-Interface IOS',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <subinterface name="GigabitEthernet0/0" vlan="10">
+    <description>Sub-interface VLAN 10</description>
+    <ip>192.168.10.1</ip>
+    <mask>255.255.255.0</mask>
+    <enabled>true</enabled>
+  </subinterface>
+</config>`
+                },
+                {
+                    key: 'config_default_subinterface_nxos',
+                    name: 'Sub-Interface NX-OS',
+                    xml: `<config target="switch" host="0.0.0.0" os="nxos" user="admin" password="password">
+  <subinterface name="Ethernet1/1" vlan="10">
+    <description>Sub-interface VLAN 10</description>
+    <ip>192.168.10.1</ip>
+    <mask>24</mask>
+    <enabled>true</enabled>
+  </subinterface>
+</config>`
+                },
+                {
+                    key: 'config_default_subinterface_eos',
+                    name: 'Sub-Interface EOS',
+                    xml: `<config target="switch" host="0.0.0.0" os="eos" user="admin" password="password">
+  <subinterface name="Ethernet1" vlan="10">
+    <description>Sub-interface VLAN 10</description>
+    <ip>192.168.10.1</ip>
+    <mask>24</mask>
+    <enabled>true</enabled>
+  </subinterface>
+</config>`
                 }
             ];
 
