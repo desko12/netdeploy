@@ -208,7 +208,7 @@ Le tableau de bord affiche:
 
 ### Configurations par Défaut
 
-L'application propose 10 configurations templates:
+L'application propose 13 configurations templates:
 
 | # | Nom | Description |
 |---|-----|-------------|
@@ -222,6 +222,10 @@ L'application propose 10 configurations templates:
 | 8 | NTP Server | Configurer les serveurs NTP |
 | 9 | DNS Configuration | Configurer les serveurs DNS |
 | 10 | SNMP Configuration | Configurer SNMP |
+| 11 | NAT/PAT Configuration | Configurer NAT/PAT (routeurs uniquement) |
+| 12 | Sub-Interface IOS | Créer une sous-interface sur IOS/IOS-XE |
+| 13 | Sub-Interface NX-OS | Créer une sous-interface sur NX-OS |
+| 14 | Sub-Interface EOS | Créer une sous-interface sur Arista EOS |
 
 ### Création d'une Configuration
 
@@ -428,6 +432,33 @@ curl "http://localhost:3000/api/ping?ip=10.10.10.2"
 </interface>
 ```
 
+#### Sous-Interface (Sub-Interface)
+
+```xml
+<subinterface name="GigabitEthernet0/0" vlan="10">
+  <description>Sub-interface VLAN 10</description>
+  <ip>192.168.10.1</ip>
+  <mask>255.255.255.0</mask>
+  <enabled>true</enabled>
+</subinterface>
+```
+
+**Attributs de `<subinterface>`:**
+
+| Attribut | Description | Exemple |
+|----------|-------------|---------|
+| name | Nom de l'interface parent | GigabitEthernet0/0 |
+| vlan | ID du VLAN (encapsulation) | 10 |
+
+**Éléments enfants:**
+
+| Élément | Description |
+|---------|-------------|
+| description | Description de la sous-interface |
+| ip | Adresse IP |
+| mask | Masque de sous-réseau |
+| enabled | true/false pour no shutdown |
+
 #### Route Statique
 
 ```xml
@@ -604,6 +635,7 @@ ansible-playbook -i inventory.json playbook.yml -u desko -k -v
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v2.1.34 | 2026-04-02 | Ajout configuration sous-interfaces (IOS/NX-OS/EOS) |
 | v2.1.33 | 2026-04-02 | Corrections handler user et parser SNMP |
 | v2.1.32 | 2026-04-02 | Correction ios_l2_interfaces pour trunk |
 | v2.1.31 | 2026-04-02 | Corrections handlers NTP/DNS/SNMP/User |
