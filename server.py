@@ -95,7 +95,7 @@ def parse_xml(xml_string):
             'elements': []
         }
         
-        supported = ['interface', 'subinterface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp', 'nat']
+        supported = ['interface', 'subinterface', 'delete-subinterface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp', 'nat']
         
         for elem in config_el:
             if elem.tag not in supported:
@@ -263,6 +263,13 @@ def generate_playbook(configs):
                     if ip:
                         lines.append(f'ip address {ip}/{mask}')
                     task['eos_config'] = {'lines': lines}
+            
+            elif elem['type'] == 'delete-subinterface':
+                name = elem['attrs'].get('name', '')
+                if name and config['os'] in ['ios', 'nxos']:
+                    task['ios_config'] = {'lines': [f'no interface {name}']}
+                elif name and config['os'] == 'eos':
+                    task['eos_config'] = {'lines': [f'no interface {name}']}
             
             elif elem['type'] == 'vlan':
                 vlan_id = int(elem['attrs'].get('id'))

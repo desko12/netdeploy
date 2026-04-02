@@ -1336,6 +1336,27 @@
     <enabled>true</enabled>
   </subinterface>
 </config>`
+                },
+                {
+                    key: 'config_default_delete_subinterface_ios',
+                    name: 'Delete Sub-Interface IOS',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <delete-subinterface name="GigabitEthernet0/0.10"/>
+</config>`
+                },
+                {
+                    key: 'config_default_delete_subinterface_nxos',
+                    name: 'Delete Sub-Interface NX-OS',
+                    xml: `<config target="switch" host="0.0.0.0" os="nxos" user="admin" password="password">
+  <delete-subinterface name="Ethernet1/1.10"/>
+</config>`
+                },
+                {
+                    key: 'config_default_delete_subinterface_eos',
+                    name: 'Delete Sub-Interface EOS',
+                    xml: `<config target="switch" host="0.0.0.0" os="eos" user="admin" password="password">
+  <delete-subinterface name="Ethernet1.10"/>
+</config>`
                 }
             ];
 
