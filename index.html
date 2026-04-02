@@ -371,9 +371,49 @@
                             <div id="deployEquipmentList" class="space-y-2 max-h-64 overflow-auto">
                                 <div class="text-center text-slate-500 py-4">
                                     <p>Aucun équipement disponible</p>
-                                </div>
-                            </div>
-                        </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Equipment Config Modal -->
+    <div id="viewConfigModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 modal-backdrop" onclick="closeViewConfigModal()"></div>
+        <div class="relative bg-slate-800 rounded-2xl border border-slate-700 w-full max-w-4xl fade-in shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+                <h3 class="text-lg font-semibold text-white" id="viewConfigTitle">Configuration de l'équipement</h3>
+                <button onclick="closeViewConfigModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-4 border-b border-slate-700 flex-shrink-0">
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="fetchEquipmentConfig('running-config')" class="config-type-btn px-3 py-1.5 bg-slate-700 hover:bg-blue-600 rounded-lg text-sm transition-colors" data-type="running-config">Running Config</button>
+                    <button onclick="fetchEquipmentConfig('interfaces')" class="config-type-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors" data-type="interfaces">Interfaces</button>
+                    <button onclick="fetchEquipmentConfig('vlans')" class="config-type-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors" data-type="vlans">VLANs</button>
+                    <button onclick="fetchEquipmentConfig('routes')" class="config-type-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors" data-type="routes">Routes</button>
+                    <button onclick="fetchEquipmentConfig('users')" class="config-type-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors" data-type="users">Utilisateurs</button>
+                    <button onclick="fetchEquipmentConfig('ntp')" class="config-type-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors" data-type="ntp">NTP</button>
+                    <button onclick="fetchEquipmentConfig('snmp')" class="config-type-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors" data-type="snmp">SNMP</button>
+                    <button onclick="fetchEquipmentConfig('banner')" class="config-type-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors" data-type="banner">Bannière</button>
+                    <button onclick="fetchEquipmentConfig('hostname')" class="config-type-btn px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors" data-type="hostname">Hostname</button>
+                </div>
+            </div>
+            <div class="p-6 overflow-auto flex-1">
+                <div id="viewConfigContent" class="bg-slate-900 rounded-lg p-4 font-mono text-sm text-slate-300 whitespace-pre-wrap overflow-auto max-h-[50vh]">
+                    <span class="text-slate-500">Cliquez sur un type de configuration pour la récupérer...</span>
+                </div>
+                <div id="viewConfigLoading" class="hidden text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+                    <p class="mt-2 text-slate-400">Récupération de la configuration...</p>
+                </div>
+            </div>
+            <div class="p-6 border-t border-slate-700 flex justify-end flex-shrink-0">
+                <button onclick="closeViewConfigModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
                     </div>
 
                     <!-- Configuration Selection -->
@@ -1357,6 +1397,42 @@
                     xml: `<config target="switch" host="0.0.0.0" os="eos" user="admin" password="password">
   <delete-subinterface name="Ethernet1.10"/>
 </config>`
+                },
+                {
+                    key: 'config_default_hostname_ios',
+                    name: 'Hostname IOS',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <hostname>
+    <name>Router-01</name>
+  </hostname>
+</config>`
+                },
+                {
+                    key: 'config_default_hostname_nxos',
+                    name: 'Hostname NX-OS',
+                    xml: `<config target="switch" host="0.0.0.0" os="nxos" user="admin" password="password">
+  <hostname>
+    <name>Switch-01</name>
+  </hostname>
+</config>`
+                },
+                {
+                    key: 'config_default_hostname_eos',
+                    name: 'Hostname EOS',
+                    xml: `<config target="switch" host="0.0.0.0" os="eos" user="admin" password="password">
+  <hostname>
+    <name>Arista-SW-01</name>
+  </hostname>
+</config>`
+                },
+                {
+                    key: 'config_default_hostname_junos',
+                    name: 'Hostname JunOS',
+                    xml: `<config target="router" host="0.0.0.0" os="junos" user="admin" password="password">
+  <hostname>
+    <name>Juniper-RTR-01</name>
+  </hostname>
+</config>`
                 }
             ];
 
@@ -1748,6 +1824,9 @@
                             <button onclick="testEquipmentConnectivity(${i})" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Tester la connexion">
                                 <i data-lucide="wifi" class="w-4 h-4 text-slate-400 hover:text-blue-400"></i>
                             </button>
+                            <button onclick="viewEquipmentConfig(${i})" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Voir la configuration">
+                                <i data-lucide="file-code" class="w-4 h-4 text-slate-400 hover:text-purple-400"></i>
+                            </button>
                             <button onclick="editEquipment(${i})" class="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Modifier">
                                 <i data-lucide="pencil" class="w-4 h-4 text-slate-400 hover:text-amber-400"></i>
                             </button>
@@ -1893,6 +1972,64 @@
             if (testConn) {
                 await testEquipmentConnectivity(equipment.findIndex(e => e.id === equipData.id));
             }
+        }
+
+        let currentViewConfigEquip = null;
+
+        function viewEquipmentConfig(index) {
+            currentViewConfigEquip = equipment[index];
+            document.getElementById('viewConfigTitle').textContent = `Configuration - ${currentViewConfigEquip.name}`;
+            document.getElementById('viewConfigContent').innerHTML = '<span class="text-slate-500">Cliquez sur un type de configuration pour la récupérer...</span>';
+            document.getElementById('viewConfigModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeViewConfigModal() {
+            document.getElementById('viewConfigModal').classList.add('hidden');
+            currentViewConfigEquip = null;
+        }
+
+        async function fetchEquipmentConfig(configType) {
+            if (!currentViewConfigEquip) return;
+            
+            const e = currentViewConfigEquip;
+            const contentDiv = document.getElementById('viewConfigContent');
+            const loadingDiv = document.getElementById('viewConfigLoading');
+            
+            document.querySelectorAll('.config-type-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600');
+                btn.classList.add('bg-slate-700');
+            });
+            document.querySelector(`[data-type="${configType}"]`).classList.remove('bg-slate-700');
+            document.querySelector(`[data-type="${configType}"]`).classList.add('bg-blue-600');
+            
+            contentDiv.classList.add('hidden');
+            loadingDiv.classList.remove('hidden');
+            
+            try {
+                const url = `/api/config/get?ip=${e.ip}&user=${encodeURIComponent(e.username)}&password=${encodeURIComponent(e.password)}&os=${e.os}&type=${configType}`;
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                loadingDiv.classList.add('hidden');
+                contentDiv.classList.remove('hidden');
+                
+                if (result.success) {
+                    contentDiv.innerHTML = `<pre class="whitespace-pre-wrap">${escapeHtml(result.output)}</pre>`;
+                } else {
+                    contentDiv.innerHTML = `<span class="text-red-400">Erreur: ${escapeHtml(result.error || result.details || 'Erreur inconnue')}</span>`;
+                }
+            } catch (error) {
+                loadingDiv.classList.add('hidden');
+                contentDiv.classList.remove('hidden');
+                contentDiv.innerHTML = `<span class="text-red-400">Erreur de connexion: ${escapeHtml(error.message)}</span>`;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function deleteEquipment(index) {

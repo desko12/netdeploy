@@ -95,7 +95,7 @@ def parse_xml(xml_string):
             'elements': []
         }
         
-        supported = ['interface', 'subinterface', 'delete-subinterface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp', 'nat']
+        supported = ['interface', 'subinterface', 'delete-subinterface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp', 'nat', 'hostname']
         
         for elem in config_el:
             if elem.tag not in supported:
@@ -392,6 +392,16 @@ def generate_playbook(configs):
                             'ios_config': {'lines': [f'ip nat inside source list {acl} interface {outside} overload']}
                         })
             
+            elif elem['type'] == 'hostname':
+                hostname_name = next((c['text'] for c in elem['children'] if c['tag'] == 'name'), '')
+                if hostname_name:
+                    if config['os'] in ['ios', 'nxos']:
+                        task['ios_config'] = {'lines': [f'hostname {hostname_name}']}
+                    elif config['os'] == 'eos':
+                        task['eos_config'] = {'lines': [f'hostname {hostname_name}']}
+                    elif config['os'] == 'junos':
+                        task['junipernetworks.junos.junos_config'] = {'lines': [f'set system host-name {hostname_name}']}
+            
             elif elem['type'] == 'static-route':
                 network = ''
                 mask = ''
@@ -563,6 +573,123 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(result).encode())
+        elif self.path.startswith('/api/config/get'):
+            from urllib.parse import urlparse, parse_qs
+            parsed = urlparse(self.path)
+            params = parse_qs(parsed.query)
+            ip = params.get('ip', [None])[0]
+            user = params.get('user', ['admin'])[0]
+            password = params.get('password', [''])[0]
+            os_type = params.get('os', ['ios'])[0]
+            config_type = params.get('type', ['running-config'])[0]
+            
+            if not ip:
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'IP parameter required'}).encode())
+                return
+            
+            log('INFO', f'Recuperation config {config_type} depuis {ip}')
+            
+            inventory = json.dumps({
+                'all': {
+                    'hosts': {
+                        'device': {
+                            'ansible_host': ip,
+                            'ansible_user': user,
+                            'ansible_password': password,
+                            'ansible_network_os': os_type
+                        }
+                    },
+                    'vars': {
+                        'ansible_user': user,
+                        'ansible_password': password,
+                        'ansible_connection': 'network_cli'
+                    }
+                }
+            }, indent=2)
+            
+            commands_map = {
+                'running-config': 'show running-config all',
+                'interfaces': 'show ip interface brief',
+                'vlans': 'show vlan brief',
+                'routes': 'show ip route',
+                'users': 'show running-config | include ^username',
+                'ntp': 'show running-config | include ntp',
+                'snmp': 'show running-config | include snmp',
+                'banner': 'show running-config | include ^banner',
+                'hostname': 'show running-config | include ^hostname'
+            }
+            
+            command = commands_map.get(config_type, 'show running-config')
+            
+            playbook = f'''- name: Get Device Configuration
+  hosts: device
+  gather_facts: false
+  tasks:
+    - name: Get {config_type}
+      cisco.ios.ios_command:
+        commands: "{command}"
+      register: output
+    - name: Display output
+      debug:
+        var: output.stdout_lines
+'''
+            
+            try:
+                with open(f'{WORK_DIR}/get_config_inventory.json', 'w') as f:
+                    f.write(inventory)
+                with open(f'{WORK_DIR}/get_config_pb.yml', 'w') as f:
+                    f.write(playbook)
+                
+                env = {
+                    **os.environ,
+                    'ANSIBLE_CONFIG': f'{WORK_DIR}/ansible.cfg',
+                    'ANSIBLE_HOST_KEY_CHECKING': 'False',
+                    'ANSIBLE_PARAMIKO_HOST_KEY_AUTO_ADD': 'True',
+                    'ANSIBLE_PREFER_PARAMIKO': 'True'
+                }
+                
+                result = subprocess.run(
+                    ['ansible-playbook', '-i', f'{WORK_DIR}/get_config_inventory.json', f'{WORK_DIR}/get_config_pb.yml', '-v'],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                    env=env
+                )
+                
+                if result.returncode == 0:
+                    import re
+                    output_lines = re.findall(r'ok: \\[device\\] => \\{\\s*"changed.*?"stdout_lines": \\[(.*?)\\]', result.stdout, re.DOTALL)
+                    if output_lines:
+                        config_data = output_lines[0] if output_lines else ''
+                        lines = result.stdout.split('\n')
+                        config_output = []
+                        capture = False
+                        for line in lines:
+                            if 'stdout_lines' in line or capture:
+                                capture = True
+                                if line.strip():
+                                    config_output.append(line.strip())
+                    else:
+                        config_output = result.stdout.split('\n')
+                    
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'success': True, 'output': result.stdout, 'config_type': config_type}).encode())
+                else:
+                    self.send_response(500)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'error': 'Failed to retrieve configuration', 'details': result.stdout[-500:]}).encode())
+            except Exception as e:
+                log('ERROR', f'Erreur recuperation config: {str(e)}')
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': str(e)}).encode())
         else:
             super().do_GET()
     
