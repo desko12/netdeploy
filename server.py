@@ -95,7 +95,7 @@ def parse_xml(xml_string):
             'elements': []
         }
         
-        supported = ['interface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp']
+        supported = ['interface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp', 'nat']
         
         for elem in config_el:
             if elem.tag not in supported:
@@ -111,7 +111,10 @@ def parse_xml(xml_string):
                         neighbor['description'] = desc.text
                     element.setdefault('neighbors', []).append(neighbor)
                 else:
-                    element['children'].append({'tag': child.tag, 'text': child.text})
+                    child_elem = {'tag': child.tag, 'text': child.text}
+                    if child.attrib:
+                        child_elem['attrs'] = dict(child.attrib)
+                    element['children'].append(child_elem)
             
             config['elements'].append(element)
         
@@ -282,7 +285,7 @@ def generate_playbook(configs):
                     task['ios_banner'] = {'banner': 'motd', 'text': motd, 'state': 'present'}
             
             elif elem['type'] == 'user':
-                user_name = elem['attrs'].get('name', '')
+                user_name = next((c['text'] for c in elem['children'] if c['tag'] == 'name'), '')
                 user_pass = next((c['text'] for c in elem['children'] if c['tag'] == 'password'), '')
                 privilege = next((c['text'] for c in elem['children'] if c['tag'] == 'privilege'), '15')
                 if user_name and config['os'] == 'ios':
@@ -313,7 +316,7 @@ def generate_playbook(configs):
                 if config['os'] == 'ios':
                     lines = []
                     for child in elem['children']:
-                        if child.get('type') == 'element':
+                        if child['tag'] == 'community':
                             attrs = child.get('attrs', {})
                             if attrs.get('name'):
                                 perm = attrs.get('permission', 'ro')
@@ -324,6 +327,42 @@ def generate_playbook(configs):
                         lines.append(f'snmp-server contact {contact}')
                     if lines:
                         task['ios_config'] = {'lines': lines}
+            
+            elif elem['type'] == 'nat':
+                inside = next((c['text'] for c in elem['children'] if c['tag'] == 'inside-interface'), '')
+                outside = next((c['text'] for c in elem['children'] if c['tag'] == 'outside-interface'), '')
+                acl = next((c['text'] for c in elem['children'] if c['tag'] == 'acl'), '1')
+                if config['os'] == 'ios':
+                    if inside:
+                        tasks.append({
+                            'name': f'Configure NAT inside on {inside}',
+                            'ios_config': {'lines': ['ip nat inside'], 'parents': [f'interface {inside}']}
+                        })
+                    if outside:
+                        tasks.append({
+                            'name': f'Configure NAT outside on {outside}',
+                            'ios_config': {'lines': ['ip nat outside'], 'parents': [f'interface {outside}']}
+                        })
+                    if inside and outside:
+                        tasks.append({
+                            'name': 'Configure NAT overload',
+                            'ios_config': {'lines': [f'ip nat inside source list {acl} interface {outside} overload']}
+                        })
+            
+            elif elem['type'] == 'static-route':
+                network = ''
+                mask = ''
+                next_hop = ''
+                for child in elem['children']:
+                    if child['tag'] == 'network':
+                        network = child['text'] or ''
+                    elif child['tag'] == 'mask':
+                        mask = child['text'] or ''
+                    elif child['tag'] == 'next-hop':
+                        next_hop = child['text'] or ''
+                if network and next_hop and config['os'] == 'ios':
+                    lines = [f'ip route {network} {mask} {next_hop}']
+                    task['ios_config'] = {'lines': lines}
             
             if len(task) >= 2:
                 tasks.append(task)

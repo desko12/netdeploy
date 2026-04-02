@@ -1289,6 +1289,17 @@
     <contact>admin@network.local</contact>
   </snmp>
 </config>`
+                },
+                {
+                    key: 'config_default_nat_pat',
+                    name: 'NAT/PAT Configuration',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <nat>
+    <inside-interface>GigabitEthernet0/0</inside-interface>
+    <outside-interface>GigabitEthernet0/1</outside-interface>
+    <acl>1</acl>
+  </nat>
+</config>`
                 }
             ];
 
