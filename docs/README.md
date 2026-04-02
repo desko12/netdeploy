@@ -208,7 +208,7 @@ Le tableau de bord affiche:
 
 ### Configurations par Défaut
 
-L'application propose 16 configurations templates:
+L'application propose 20 configurations templates:
 
 | # | Nom | Description |
 |---|-----|-------------|
@@ -229,6 +229,10 @@ L'application propose 16 configurations templates:
 | 15 | Delete Sub-Interface IOS | Supprimer une sous-interface sur IOS/IOS-XE |
 | 16 | Delete Sub-Interface NX-OS | Supprimer une sous-interface sur NX-OS |
 | 17 | Delete Sub-Interface EOS | Supprimer une sous-interface sur Arista EOS |
+| 18 | Hostname IOS | Configurer le hostname sur IOS/IOS-XE |
+| 19 | Hostname NX-OS | Configurer le hostname sur NX-OS |
+| 20 | Hostname EOS | Configurer le hostname sur Arista EOS |
+| 21 | Hostname JunOS | Configurer le hostname sur JunOS |
 
 ### Création d'une Configuration
 
@@ -476,6 +480,16 @@ curl "http://localhost:3000/api/ping?ip=10.10.10.2"
 
 **Commande générée:** `no interface GigabitEthernet0/0.10`
 
+#### Hostname
+
+```xml
+<hostname>
+  <name>Router-01</name>
+</hostname>
+```
+
+**Commande générée:** `hostname Router-01`
+
 #### Route Statique
 
 ```xml
@@ -560,6 +574,23 @@ curl "http://localhost:3000/api/ping?ip=10.10.10.2"
 | POST | `/api/deploy` | Déployer une configuration |
 | POST | `/api/logs/clear` | Effacer les logs |
 | GET | `/api/ping?ip=X` | Tester connectivité |
+| GET | `/api/config/get?ip=X&user=X&password=X&os=X&type=X` | Voir configuration |
+
+### Visualisation de Configuration
+
+L'application permet de visualiser la configuration actuelle d'un équipement:
+
+1. Cliquer sur l'icône 📄 (Voir la configuration) à côté d'un équipement
+2. Choisir le type de configuration à visualiser:
+   - **Running Config**: Configuration complète
+   - **Interfaces**: Liste des interfaces
+   - **VLANs**: Liste des VLANs
+   - **Routes**: Table de routage
+   - **Utilisateurs**: Comptes utilisateurs locaux
+   - **NTP**: Configuration NTP
+   - **SNMP**: Configuration SNMP
+   - **Bannière**: Bannières configurées
+   - **Hostname**: Nom de l'équipement
 
 ### Déploiement via API
 
@@ -652,6 +683,7 @@ ansible-playbook -i inventory.json playbook.yml -u desko -k -v
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v2.1.36 | 2026-04-02 | Ajout hostname et visualisation config équipement |
 | v2.1.35 | 2026-04-02 | Ajout suppression sous-interfaces (IOS/NX-OS/EOS) |
 | v2.1.34 | 2026-04-02 | Ajout configuration sous-interfaces (IOS/NX-OS/EOS) |
 | v2.1.33 | 2026-04-02 | Corrections handler user et parser SNMP |
