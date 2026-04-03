@@ -208,7 +208,7 @@ Le tableau de bord affiche:
 
 ### Configurations par Défaut
 
-L'application propose 20 configurations templates:
+L'application propose 22 configurations templates:
 
 | # | Nom | Description |
 |---|-----|-------------|
@@ -233,6 +233,7 @@ L'application propose 20 configurations templates:
 | 19 | Hostname NX-OS | Configurer le hostname sur NX-OS |
 | 20 | Hostname EOS | Configurer le hostname sur Arista EOS |
 | 21 | Hostname JunOS | Configurer le hostname sur JunOS |
+| 22 | ACL Standard IOS | Configurer une ACL standard numérotée |
 
 ### Création d'une Configuration
 
@@ -490,6 +491,40 @@ curl "http://localhost:3000/api/ping?ip=10.10.10.2"
 
 **Commande générée:** `hostname Router-01`
 
+#### ACL Standard (Numérotée)
+
+```xml
+<acl id="1" action="permit">
+  <rule action="permit">192.168.1.0</rule>
+  <rule action="permit">10.0.0.0</rule>
+  <rule action="deny">any</rule>
+</acl>
+```
+
+**Attributs de `<acl>`:**
+
+| Attribut | Description | Exemple |
+|----------|-------------|---------|
+| id | Numéro de l'ACL (1-99, 1300-1999) | 1 |
+| action | Action par défaut | permit/deny |
+
+**Éléments `<rule>`:**
+
+| Attribut | Description |
+|----------|-------------|
+| action | permit ou deny |
+
+**Valeurs possibles:**
+- `any` - Tout le trafic
+- IP spécifique - `192.168.1.0` (avec wildcard 0.0.0.255 implicite)
+
+**Commandes générées:**
+```
+access-list 1 permit 192.168.1.0
+access-list 1 permit 10.0.0.0
+access-list 1 deny any
+```
+
 #### Route Statique
 
 ```xml
@@ -683,6 +718,9 @@ ansible-playbook -i inventory.json playbook.yml -u desko -k -v
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v2.1.39 | 2026-04-03 | Ajout template ACL Standard numérotée |
+| v2.1.38 | 2026-04-03 | Fix DHCP IP configuration |
+| v2.1.37 | 2026-04-03 | Fix get-config API pipe command syntax |
 | v2.1.36 | 2026-04-02 | Ajout hostname et visualisation config équipement |
 | v2.1.35 | 2026-04-02 | Ajout suppression sous-interfaces (IOS/NX-OS/EOS) |
 | v2.1.34 | 2026-04-02 | Ajout configuration sous-interfaces (IOS/NX-OS/EOS) |
@@ -690,8 +728,6 @@ ansible-playbook -i inventory.json playbook.yml -u desko -k -v
 | v2.1.32 | 2026-04-02 | Correction ios_l2_interfaces pour trunk |
 | v2.1.31 | 2026-04-02 | Corrections handlers NTP/DNS/SNMP/User |
 | v2.1.30 | 2026-04-02 | Ajout handlers pour banner/user/ntp/dns/snmp |
-| v2.1.29 | 2026-04-02 | Correction host key verification |
-| v2.1.28 | 2026-04-02 | 10 configurations XML par défaut |
 
 ---
 
