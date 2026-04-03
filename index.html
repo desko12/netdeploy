@@ -484,7 +484,7 @@
                             </div>
                             <div class="mb-4">
                                 <label class="block text-sm text-slate-400 mb-2">Ou entrer le XML directement</label>
-                                <textarea id="quickXmlInput" placeholder="<config target=&quot;equip1&quot; host=&quot;192.168.1.1&quot; os=&quot;ios&quot; user=&quot;admin&quot; password=&quot;pass&quot;>&#10;  <vlan id=&quot;100&quot;>&#10;    <name>CLIENT_VLAN</name>&#10;  </vlan>&#10;</config>" class="w-full h-32 bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                                <textarea id="quickXmlInput" oninput="updateDeployButton()" placeholder="<config target=&quot;equip1&quot; host=&quot;192.168.1.1&quot; os=&quot;ios&quot; user=&quot;admin&quot; password=&quot;pass&quot;>&#10;  <vlan id=&quot;100&quot;>&#10;    <name>CLIENT_VLAN</name>&#10;  </vlan>&#10;</config>" class="w-full h-32 bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2 text-sm font-mono focus:outline-none focus:border-blue-500 resize-none"></textarea>
                             </div>
                             <div id="quickXmlValidation" class="text-sm"></div>
                         </div>
@@ -2222,7 +2222,9 @@
         function updateDeployButton() {
             selectedDeployEquipments = Array.from(document.querySelectorAll('.deploy-equip-checkbox:checked')).map(cb => parseInt(cb.value));
             const deployBtn = document.getElementById('deployButton');
-            deployBtn.disabled = selectedDeployEquipments.length === 0;
+            const hasSelection = selectedDeployEquipments.length > 0 || selectedImportedEquipments.length > 0;
+            const hasXml = document.getElementById('quickXmlInput').value.trim().length > 0;
+            deployBtn.disabled = !(hasSelection && hasXml);
         }
 
         function loadSavedTemplate() {
@@ -2327,6 +2329,7 @@
             document.getElementById('quickXmlInput').value = xmlContent;
             showToast(`${importedConfigs.length} équipement(s) détecté(s)`, 'success');
             lucide.createIcons();
+            updateDeployButton();
         }
 
         function renderImportedEquipmentsList() {
