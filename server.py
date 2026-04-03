@@ -416,7 +416,7 @@ def generate_playbook(configs):
                 acl_id = elem['attrs'].get('id', '1')
                 acl_action = elem['attrs'].get('action', 'permit')
                 if config['os'] in ['ios', 'nxos']:
-                    lines = [f'access-list {acl_id} {acl_action} any']
+                    lines = []
                     for child in elem['children']:
                         if child['tag'] == 'rule':
                             source = child.get('text', 'any')
