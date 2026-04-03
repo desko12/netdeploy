@@ -783,20 +783,31 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps(result).encode())
+                try:
+                    self.wfile.write(json.dumps(result).encode())
+                except BrokenPipeError:
+                    log('ERROR', 'Client disconnected during response')
                 
             except ET.ParseError as e:
                 log('ERROR', f'XML invalide: {str(e)}')
                 self.send_response(400)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps({'error': 'Invalid XML: ' + str(e)}).encode())
+                try:
+                    self.wfile.write(json.dumps({'error': 'Invalid XML: ' + str(e)}).encode())
+                except BrokenPipeError:
+                    pass
+            except BrokenPipeError:
+                log('ERROR', 'Client disconnected')
             except Exception as e:
                 log('ERROR', f'Erreur serveur: {str(e)}')
-                self.send_response(500)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({'error': str(e)}).encode())
+                try:
+                    self.send_response(500)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'error': str(e)}).encode())
+                except BrokenPipeError:
+                    pass
         
         elif self.path == '/api/logs/clear':
             global logs
