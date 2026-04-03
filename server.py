@@ -503,10 +503,10 @@ pipelining = True
             'ANSIBLE_PREFER_PARAMIKO': 'True'
         }
         result = subprocess.run(
-            ['ansible-playbook', '-i', f'{WORK_DIR}/inventory.json', f'{WORK_DIR}/deploy.yml', '-v', '--timeout', '60'],
+            ['ansible-playbook', '-i', f'{WORK_DIR}/inventory.json', f'{WORK_DIR}/deploy.yml', '-v', '--timeout', '120'],
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=600,
             env=env
         )
         
