@@ -95,7 +95,7 @@ def parse_xml(xml_string):
             'elements': []
         }
         
-        supported = ['interface', 'subinterface', 'delete-subinterface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp', 'nat', 'hostname']
+        supported = ['interface', 'subinterface', 'delete-subinterface', 'vlan', 'bgp', 'ospf', 'network', 'static-route', 'ntp', 'dns', 'banner', 'user', 'snmp', 'nat', 'hostname', 'acl']
         
         for elem in config_el:
             if elem.tag not in supported:
@@ -411,6 +411,25 @@ def generate_playbook(configs):
                         task['eos_config'] = {'lines': [f'hostname {hostname_name}']}
                     elif config['os'] == 'junos':
                         task['junipernetworks.junos.junos_config'] = {'lines': [f'set system host-name {hostname_name}']}
+            
+            elif elem['type'] == 'acl':
+                acl_id = elem['attrs'].get('id', '1')
+                acl_action = elem['attrs'].get('action', 'permit')
+                if config['os'] in ['ios', 'nxos']:
+                    lines = [f'access-list {acl_id} {acl_action} any']
+                    for child in elem['children']:
+                        if child['tag'] == 'rule':
+                            source = child.get('text', 'any')
+                            mask = next((c['text'] for c in child.get('children', []) if c['tag'] == 'mask'), '')
+                            rule_action = child.get('attrs', {}).get('action', acl_action)
+                            if source == 'any':
+                                lines.append(f'access-list {acl_id} {rule_action} any')
+                            elif mask:
+                                lines.append(f'access-list {acl_id} {rule_action} {source} {mask}')
+                            else:
+                                lines.append(f'access-list {acl_id} {rule_action} host {source}')
+                    if lines:
+                        task['ios_config'] = {'lines': lines}
             
             elif elem['type'] == 'static-route':
                 network = ''

@@ -1433,6 +1433,17 @@
     <name>Juniper-RTR-01</name>
   </hostname>
 </config>`
+                },
+                {
+                    key: 'config_default_acl_ios',
+                    name: 'ACL Standard IOS',
+                    xml: `<config target="router" host="0.0.0.0" os="ios" user="admin" password="password">
+  <acl id="1" action="permit">
+    <rule action="permit">192.168.1.0</rule>
+    <rule action="permit">10.0.0.0</rule>
+    <rule action="deny">any</rule>
+  </acl>
+</config>`
                 }
             ];
 
