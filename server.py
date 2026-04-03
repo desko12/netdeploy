@@ -205,7 +205,14 @@ def generate_playbook(configs):
                         task['nxos_interfaces'] = {'config': [{'name': name, 'enabled': state != 'absent'}], 'state': mapped_state}
                     elif config['os'] == 'ios':
                         if ip_elem:
-                            if '/' in ip_elem:
+                            if ip_elem.lower() == 'dhcp':
+                                task['ios_config'] = {
+                                    'lines': [
+                                        f'interface {name}',
+                                        'ip address dhcp'
+                                    ]
+                                }
+                            elif '/' in ip_elem:
                                 ip, prefix = ip_elem.split('/')
                                 task['ios_l3_interfaces'] = {
                                     'config': [{
@@ -239,7 +246,10 @@ def generate_playbook(configs):
                 if name and vlan_id and config['os'] == 'ios':
                     lines = [f'encapsulation dot1q {vlan_id}']
                     if ip:
-                        lines.append(f'ip address {ip} {mask}')
+                        if ip.lower() == 'dhcp':
+                            lines.append('ip address dhcp')
+                        else:
+                            lines.append(f'ip address {ip} {mask}')
                     if description:
                         lines.append(f'description {description}')
                     if enabled.lower() == 'true':
