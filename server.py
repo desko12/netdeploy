@@ -452,12 +452,27 @@ def generate_playbook(configs):
     if not tasks:
         tasks.append({'name': 'No configuration tasks generated', 'debug': configs})
     
-    return yaml.dump([{
-        'name': 'Network Configuration Deployment',
-        'hosts': 'all',
-        'gather_facts': False,
-        'tasks': tasks
-    }], default_flow_style=False, sort_keys=False)
+    plays = []
+    for config in configs:
+        host = config.get('target', 'device')
+        host_tasks = [t for t in tasks if f"{host}:" in t.get('name', '')]
+        if host_tasks:
+            plays.append({
+                'name': f'Deploy to {host}',
+                'hosts': host,
+                'gather_facts': False,
+                'tasks': host_tasks
+            })
+    
+    if not plays:
+        plays.append({
+            'name': 'Network Configuration Deployment',
+            'hosts': 'all',
+            'gather_facts': False,
+            'tasks': tasks
+        })
+    
+    return yaml.dump(plays, default_flow_style=False, sort_keys=False)
 
 def run_ansible_playbook(inventory_content, playbook_content, deployment_id=None):
     logs_list = []

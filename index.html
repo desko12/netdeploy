@@ -348,6 +348,57 @@
             <section id="section-deploy" class="section hidden">
                 <h2 class="text-2xl font-bold text-white mb-6">Déployer une configuration</h2>
 
+                <!-- Import XML Section -->
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700 mb-6">
+                    <div class="p-4 border-b border-slate-700">
+                        <h3 class="font-semibold text-white flex items-center gap-2">
+                            <i data-lucide="file-up" class="w-4 h-4 text-slate-400"></i>
+                            Importer un fichier XML de configuration
+                        </h3>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-center gap-4">
+                            <label class="flex-1">
+                                <input type="file" id="xmlFileInput" accept=".xml" onchange="handleXmlFileUpload(event)" class="hidden">
+                                <div id="xmlDropZone" onclick="document.getElementById('xmlFileInput').click()" class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-slate-700/30 transition-all">
+                                    <i data-lucide="upload-cloud" class="w-12 h-12 mx-auto mb-3 text-slate-500"></i>
+                                    <p class="text-slate-400 mb-1">Cliquez pour sélectionner un fichier XML</p>
+                                    <p class="text-slate-500 text-sm">ou glissez-déposez un fichier .xml</p>
+                                </div>
+                            </label>
+                            <button onclick="loadSampleXml()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors flex items-center gap-2">
+                                <i data-lucide="file-text" class="w-4 h-4"></i>
+                                Charger exemple
+                            </button>
+                        </div>
+                        <div id="xmlImportStatus" class="mt-4 hidden">
+                            <div class="flex items-center gap-2 text-green-400">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                <span id="xmlImportMessage"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Imported Configs Preview -->
+                <div id="importedConfigsSection" class="bg-slate-800/50 rounded-xl border border-slate-700 mb-6 hidden">
+                    <div class="p-4 border-b border-slate-700">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-semibold text-white flex items-center gap-2">
+                                <i data-lucide="list" class="w-4 h-4 text-slate-400"></i>
+                                Équipements détectés dans le fichier XML
+                            </h3>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="selectAllImported" class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500" onchange="toggleAllImportedEquipments()">
+                                <span class="text-sm text-slate-300">Tout sélectionner</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="importedEquipmentsList" class="p-4 max-h-64 overflow-auto">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Target Selection -->
                     <div class="bg-slate-800/50 rounded-xl border border-slate-700">
@@ -2196,15 +2247,195 @@
             }
         }
 
-        function startDeployment() {
-            if (selectedDeployEquipments.length === 0) {
-                showToast('Sélectionnez au moins un équipement', 'warning');
+        let importedConfigs = [];
+        let selectedImportedEquipments = [];
+
+        function handleXmlFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.name.endsWith('.xml')) {
+                showToast('Veuillez sélectionner un fichier XML', 'error');
                 return;
             }
             
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const xmlContent = e.target.result;
+                    parseAndDisplayImportedXml(xmlContent);
+                } catch (error) {
+                    showToast('Erreur lors de la lecture du fichier', 'error');
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function parseAndDisplayImportedXml(xmlContent) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xmlContent, 'text/xml');
+            
+            const parseError = doc.querySelector('parsererror');
+            if (parseError) {
+                showToast('XML invalide', 'error');
+                return;
+            }
+            
+            const configs = doc.querySelectorAll('config');
+            if (configs.length === 0) {
+                showToast('Aucun équipement trouvé dans le fichier XML', 'warning');
+                return;
+            }
+            
+            importedConfigs = [];
+            selectedImportedEquipments = [];
+            
+            configs.forEach((config, index) => {
+                const target = config.getAttribute('target') || `Equip-${index + 1}`;
+                const host = config.getAttribute('host') || '';
+                const os = config.getAttribute('os') || 'ios';
+                const user = config.getAttribute('user') || 'admin';
+                const password = config.getAttribute('password') || '';
+                
+                const configs_list = [];
+                config.childNodes.forEach(child => {
+                    if (child.nodeType === 1) {
+                        configs_list.push(child.tagName);
+                    }
+                });
+                
+                importedConfigs.push({
+                    id: index,
+                    target,
+                    host,
+                    os,
+                    user,
+                    password,
+                    configs: configs_list,
+                    xml: config.outerHTML
+                });
+                selectedImportedEquipments.push(index);
+            });
+            
+            renderImportedEquipmentsList();
+            
+            document.getElementById('importedConfigsSection').classList.remove('hidden');
+            document.getElementById('xmlImportStatus').classList.remove('hidden');
+            document.getElementById('xmlImportMessage').textContent = `${importedConfigs.length} équipement(s) détecté(s)`;
+            
+            document.getElementById('quickXmlInput').value = xmlContent;
+            showToast(`${importedConfigs.length} équipement(s) détecté(s)`, 'success');
+            lucide.createIcons();
+        }
+
+        function renderImportedEquipmentsList() {
+            const list = document.getElementById('importedEquipmentsList');
+            if (importedConfigs.length === 0) {
+                list.innerHTML = '<div class="text-center text-slate-500 py-4">Aucun équipement importé</div>';
+                return;
+            }
+            
+            list.innerHTML = importedConfigs.map((eq, i) => {
+                const isSelected = selectedImportedEquipments.includes(i);
+                return `
+                    <div class="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg ${isSelected ? 'border border-blue-500/50' : ''}">
+                        <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleImportedEquipment(${i})" class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-white">${eq.target}</span>
+                                <span class="px-2 py-0.5 bg-slate-600 rounded text-xs uppercase">${eq.os}</span>
+                            </div>
+                            <div class="text-sm text-slate-400">${eq.host}</div>
+                            <div class="text-xs text-slate-500 mt-1">
+                                Configs: ${eq.configs.join(', ') || 'Aucune'}
+                            </div>
+                        </div>
+                        <button onclick="viewImportedConfigDetails(${i})" class="p-2 hover:bg-slate-600 rounded-lg transition-colors" title="Voir les détails">
+                            <i data-lucide="eye" class="w-4 h-4 text-slate-400"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function toggleImportedEquipment(index) {
+            const pos = selectedImportedEquipments.indexOf(index);
+            if (pos > -1) {
+                selectedImportedEquipments.splice(pos, 1);
+            } else {
+                selectedImportedEquipments.push(index);
+            }
+            renderImportedEquipmentsList();
+        }
+
+        function toggleAllImportedEquipments() {
+            const selectAll = document.getElementById('selectAllImported').checked;
+            if (selectAll) {
+                selectedImportedEquipments = importedConfigs.map((_, i) => i);
+            } else {
+                selectedImportedEquipments = [];
+            }
+            renderImportedEquipmentsList();
+        }
+
+        function viewImportedConfigDetails(index) {
+            const eq = importedConfigs[index];
+            const details = `
+<b>Équipement:</b> ${eq.target}
+<b>IP:</b> ${eq.host}
+<b>OS:</b> ${eq.os}
+
+<b>Configurations détectées:</b>
+${eq.configs.map(c => '• ' + c).join('\n')}
+
+<b>XML:</b>
+<pre style="font-size: 11px; max-height: 300px; overflow: auto;">${escapeHtml(eq.xml)}</pre>`;
+            alert(details);
+        }
+
+        function loadSampleXml() {
+            const sampleXml = `<configs>
+  <config target="Core-01" host="10.10.10.3" os="ios" user="desko" password="desko">
+    <hostname><name>Core-01</name></hostname>
+    <vlan id="100"><name>FinanceUsers</name></vlan>
+    <interface name="GigabitEthernet0/0" mode="access">
+      <description>Port Client</description>
+      <vlan>100</vlan>
+      <enabled>true</enabled>
+    </interface>
+    <interface name="GigabitEthernet0/1" mode="trunk">
+      <description>Uplink to Access 01</description>
+      <allowed-vlans>all</allowed-vlans>
+      <native-vlan>99</native-vlan>
+      <enabled>true</enabled>
+    </interface>
+    <snmp>
+      <community name="sga-ro" permission="ro"/>
+      <location>Synelia Group Afrique</location>
+      <contact>admin@synelia.lan</contact>
+    </snmp>
+  </config>
+  <config target="SwMgnt" host="10.10.10.2" os="ios" user="desko" password="desko">
+    <hostname><name>SwMgnt</name></hostname>
+    <vlan id="200"><name>GuestUsers</name></vlan>
+    <banner><motd>===== GUEST NETWORK =====</motd></banner>
+  </config>
+</configs>`;
+            parseAndDisplayImportedXml(sampleXml);
+            showToast('Exemple XML chargé', 'success');
+        }
+
+        function startDeployment() {
             const xmlContent = document.getElementById('quickXmlInput').value.trim();
             if (!xmlContent) {
-                showToast('Entrez une configuration XML', 'warning');
+                showToast('Entrez ou importez une configuration XML', 'warning');
+                return;
+            }
+            
+            if (selectedImportedEquipments.length === 0 && selectedDeployEquipments.length === 0) {
+                showToast('Sélectionnez au moins un équipement', 'warning');
                 return;
             }
             
@@ -2217,9 +2448,44 @@
                 return;
             }
             
+            // Build target list
+            const targets = [];
+            
+            // Add imported equipment targets
+            selectedImportedEquipments.forEach(i => {
+                const eq = importedConfigs[i];
+                targets.push({
+                    type: 'imported',
+                    index: i,
+                    name: eq.target,
+                    ip: eq.host,
+                    os: eq.os
+                });
+            });
+            
+            // Add equipment from list
+            selectedDeployEquipments.forEach(i => {
+                const eq = equipment[i];
+                targets.push({
+                    type: 'equipment',
+                    index: i,
+                    name: eq.name,
+                    ip: eq.ip,
+                    os: eq.os
+                });
+            });
+            
             // Show confirmation
             const targetList = document.getElementById('confirmTargetList');
-            targetList.innerHTML = selectedDeployEquipments.map(i => `<div class="text-slate-300">• ${equipment[i].name} (${equipment[i].ip})</div>`).join('');
+            targetList.innerHTML = targets.map(t => {
+                const icon = t.type === 'imported' ? 'file-code' : 'server';
+                return `<div class="flex items-center gap-2 text-slate-300">
+                    <i data-lucide="${icon}" class="w-4 h-4 text-slate-500"></i>
+                    <span>${t.name}</span>
+                    <span class="text-slate-500">(${t.ip})</span>
+                    <span class="px-2 py-0.5 bg-slate-600 rounded text-xs uppercase">${t.os}</span>
+                </div>`;
+            }).join('');
             document.getElementById('confirmModal').classList.remove('hidden');
             lucide.createIcons();
         }
@@ -2269,7 +2535,34 @@
             closeConfirmModal();
             
             const xmlContent = document.getElementById('quickXmlInput').value;
-            const targets = selectedDeployEquipments.map(i => equipment[i]);
+            
+            const allTargets = [];
+            
+            selectedImportedEquipments.forEach(i => {
+                const eq = importedConfigs[i];
+                allTargets.push({
+                    type: 'imported',
+                    data: eq,
+                    name: eq.target,
+                    ip: eq.host,
+                    os: eq.os,
+                    username: eq.user,
+                    password: eq.password
+                });
+            });
+            
+            selectedDeployEquipments.forEach(i => {
+                const eq = equipment[i];
+                allTargets.push({
+                    type: 'equipment',
+                    data: eq,
+                    name: eq.name,
+                    ip: eq.ip,
+                    os: eq.os,
+                    username: eq.username,
+                    password: eq.password
+                });
+            });
             
             refreshLogs();
             document.getElementById('autoRefreshLogs').checked = true;
@@ -2284,13 +2577,13 @@
                 name: `Déploiement ${new Date().toLocaleString('fr-FR')}`,
                 date: new Date().toISOString(),
                 xml: xmlContent,
-                targets: targets.map(t => t.name),
+                targets: allTargets.map(t => t.name),
                 results: []
             };
             
-            for (let i = 0; i < targets.length; i++) {
-                const target = targets[i];
-                const progress = Math.round(((i + 0.5) / targets.length) * 100);
+            for (let i = 0; i < allTargets.length; i++) {
+                const target = allTargets[i];
+                const progress = Math.round(((i + 0.5) / allTargets.length) * 100);
                 
                 document.getElementById('deployProgressPercent').textContent = `${progress}%`;
                 document.getElementById('deployProgressBar').style.width = `${progress}%`;
@@ -2307,7 +2600,7 @@
                             </div>
                             <div>
                                 <p class="font-medium text-white">${target.name}</p>
-                                <p class="text-xs text-slate-400">${target.ip}</p>
+                                <p class="text-xs text-slate-400">${target.ip} <span class="text-slate-500">(${target.os})</span></p>
                             </div>
                         </div>
                         <span class="text-blue-400 text-sm" id="result-status-${i}">En cours...</span>
@@ -2321,13 +2614,19 @@
                 let errorMsg = '';
                 
                 try {
-                    const personalizedXml = injectEquipmentData(xmlContent, target);
+                    let deployXml;
+                    if (target.type === 'imported') {
+                        deployXml = `<configurations>${target.data.xml}</configurations>`;
+                    } else {
+                        deployXml = injectEquipmentData(xmlContent, target.data);
+                    }
+                    
                     document.getElementById('deployProgressMessage').textContent = `Déploiement vers ${target.name}...`;
                     
                     const response = await fetch('/api/deploy', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ config: personalizedXml })
+                        body: JSON.stringify({ config: deployXml })
                     });
                     
                     const result = await response.json();
