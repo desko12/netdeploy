@@ -207,10 +207,8 @@ def generate_playbook(configs):
                         if ip_elem:
                             if ip_elem.lower() == 'dhcp':
                                 task['ios_config'] = {
-                                    'lines': [
-                                        f'interface {name}',
-                                        'ip address dhcp'
-                                    ]
+                                    'lines': ['ip address dhcp'],
+                                    'parents': [f'interface {name}']
                                 }
                             elif '/' in ip_elem:
                                 ip, prefix = ip_elem.split('/')
