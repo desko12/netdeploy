@@ -292,7 +292,7 @@ def generate_playbook(configs):
                 elif config['os'] == 'nxos':
                     task['nxos_vlans'] = {'config': [{'vlan_id': vlan_id, 'name': vlan_name}], 'state': state}
                 elif config['os'] == 'ios':
-                    task['ios_vlans'] = {'config': [{'vlan_id': vlan_id, 'name': vlan_name}], 'state': state}
+                    task['ios_config'] = {'lines': [f'vlan {vlan_id}', f'name {vlan_name}']}
                 elif config['os'] == 'junos':
                     task['junos_vlans'] = {'vlans': [{'name': vlan_name, 'vlan_id': str(vlan_id)}]}
             
