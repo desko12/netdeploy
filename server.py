@@ -611,18 +611,18 @@ class Handler(SimpleHTTPRequestHandler):
             }, indent=2)
             
             commands_map = {
-                'running-config': 'show running-config all',
-                'interfaces': 'show ip interface brief',
-                'vlans': 'show vlan brief',
-                'routes': 'show ip route',
-                'users': 'show running-config | include ^username',
-                'ntp': 'show running-config | include ntp',
-                'snmp': 'show running-config | include snmp',
-                'banner': 'show running-config | include ^banner',
-                'hostname': 'show running-config | include ^hostname'
+                'running-config': ['show running-config all'],
+                'interfaces': ['show ip interface brief'],
+                'vlans': ['show vlan brief'],
+                'routes': ['show ip route'],
+                'users': ['show running-config | include ^username'],
+                'ntp': ['show running-config | include ntp'],
+                'snmp': ['show running-config | include snmp'],
+                'banner': ['show running-config | include ^banner'],
+                'hostname': ['show running-config | include ^hostname']
             }
             
-            command = commands_map.get(config_type, 'show running-config')
+            commands = commands_map.get(config_type, ['show running-config'])
             
             playbook = f'''- name: Get Device Configuration
   hosts: device
@@ -630,7 +630,7 @@ class Handler(SimpleHTTPRequestHandler):
   tasks:
     - name: Get {config_type}
       cisco.ios.ios_command:
-        commands: "{command}"
+        commands: {commands}
       register: output
     - name: Display output
       debug:
