@@ -268,6 +268,41 @@ L'application propose 22 configurations templates:
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
+### Import de Fichier XML Multi-Équipement
+
+L'application supporte l'import de fichiers XML contenant plusieurs équipements:
+
+1. Cliquer sur **"Importer un fichier XML"**
+2. Sélectionner ou glisser-déposer un fichier `.xml`
+3. Les équipements sont automatiquement détectés et affichés
+4. Sélectionner les équipements à déployer
+5. Cliquer sur **"Déployer"**
+
+#### Format XML Multi-Équipement
+
+```xml
+<configs>
+  <config target="Core-01" host="10.10.10.3" os="ios" user="admin" password="pass">
+    <hostname><name>Core-01</name></hostname>
+    <vlan id="100"><name>FinanceUsers</name></vlan>
+    <interface name="GigabitEthernet0/0" mode="access">
+      <description>Port Client</description>
+      <vlan>100</vlan>
+      <enabled>true</enabled>
+    </interface>
+    <snmp>
+      <community name="sga-ro" permission="ro"/>
+      <location>DataCenter</location>
+      <contact>admin@network.local</contact>
+    </snmp>
+  </config>
+  <config target="SwMgnt" host="10.10.10.2" os="ios" user="admin" password="pass">
+    <hostname><name>SwMgnt</name></hostname>
+    <vlan id="200"><name>GuestUsers</name></vlan>
+  </config>
+</configs>
+```
+
 ### Étapes de Déploiement
 
 #### Étape 1: Sélection des Équipements
@@ -718,10 +753,10 @@ ansible-playbook -i inventory.json playbook.yml -u desko -k -v
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v2.1.42 | 2026-04-03 | Ajout import XML multi-équipement et déploiement |
+| v2.1.41 | 2026-04-03 | Increase deployment timeout to 10 minutes |
+| v2.1.40 | 2026-04-03 | Fix ACL ordering - rules in correct sequence |
 | v2.1.39 | 2026-04-03 | Ajout template ACL Standard numérotée |
-| v2.1.38 | 2026-04-03 | Fix DHCP IP configuration |
-| v2.1.37 | 2026-04-03 | Fix get-config API pipe command syntax |
-| v2.1.36 | 2026-04-02 | Ajout hostname et visualisation config équipement |
 | v2.1.35 | 2026-04-02 | Ajout suppression sous-interfaces (IOS/NX-OS/EOS) |
 | v2.1.34 | 2026-04-02 | Ajout configuration sous-interfaces (IOS/NX-OS/EOS) |
 | v2.1.33 | 2026-04-02 | Corrections handler user et parser SNMP |
